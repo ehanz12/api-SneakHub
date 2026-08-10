@@ -56,3 +56,13 @@ func LoginHandler(c *fiber.Ctx) error {
 	}
 	return c.Status(200).JSON(fiber.Map{"status": "true", "message": "Login Berhasil", "data": fiber.Map{"access_token": token, "user": mappers.ToLoginRes(user)}})
 }
+
+func MeUserHandler(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	user, err := services.MeUserService(userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "kesalahan server", "error": err.Error()})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "true", "message": "Profile berhasil diambil", "data": mappers.ToUserBigRes(user)})
+}

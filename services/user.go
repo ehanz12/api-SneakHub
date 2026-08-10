@@ -57,3 +57,13 @@ func LoginUserService(req requests.LoginRequest) (*models.User, error) {
 	}
 	return &exits, nil
 }
+
+func MeUserService(userID string) (*models.User, error) {
+	var user models.User
+	err := database.DB.Select("user_id", "nama", "email", "nomor_telepon", "peran", "status_akun",
+		"preferensi_ukuran", "brand_favorit").Where("user_id = ?", userID).Find(&user).Error
+	if err != nil {
+		return nil, errors.New("user tidak ditemukan")
+	}
+	return &user, nil
+}

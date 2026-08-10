@@ -28,3 +28,21 @@ func ToLoginRes(u *models.User) *responses.LoginRes {
 		Peran:  u.Peran,
 	}
 }
+
+func ToUserBigRes(u *models.User) *responses.UserBigResponse {
+	var nomorTelp string
+	if u.NomorTelepon != nil {
+		nomorTelp = *u.NomorTelepon
+	}
+
+	return &responses.UserBigResponse{
+		UserID:         u.UserID,
+		Nama:           u.Nama,
+		Email:          u.Email,
+		NomorTelepon:   &nomorTelp,
+		Peran:          u.Peran,
+		StatusAkun:     u.StatusAkun,
+		PreferensiAkun: string(u.PreferensiUkuran),
+		BrandFavorit:   string(u.BrandFavorit),
+	}
+}
