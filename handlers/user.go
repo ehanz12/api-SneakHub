@@ -66,3 +66,25 @@ func MeUserHandler(c *fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "true", "message": "Profile berhasil diambil", "data": mappers.ToUserBigRes(user)})
 }
+
+func UpdateUserHandler(c *fiber.Ctx) error {
+	var req requests.UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": "false", "message": "request gagal", "errors": err.Error()})
+	}
+
+	if errs := req.ValidateUpdateUser(); len(errs) > 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"status":  "error",
+			"message": "kesalahan validasi",
+			"errors":  errs,
+		})
+	}
+
+	userID := c.Locals("user_id").(string)
+	user, err := services.UpdateUserService(userID, req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "terjadi kesalahan server", "errors": err.Error()})
+	}
+	return c.Status(200).JSON(fiber.Map{"status": "true", "message": "Profile Berhasil Diperbarui", "data": mappers.ToUserUpdateRes(user)})
+}

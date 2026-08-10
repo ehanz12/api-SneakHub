@@ -18,6 +18,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type UpdateUserRequest struct {
+	Nama             string   `json:"nama"`
+	NomorTelepon     *string  `json:"nomor_telepon"`
+	PreferensiUkuran []string `json:"preferensi_ukuran"`
+	BrandFavorit     []string `json:"brand_favorit"`
+}
+
 func (r *RegisterRequest) Validate() map[string]string {
 	errs := make(map[string]string)
 
@@ -52,6 +59,21 @@ func (r *LoginRequest) ValidateLogin() map[string]string {
 	}
 	if len(r.Password) < 6 {
 		errs["password"] = "password harus lebih 6 karakter"
+	}
+	return errs
+}
+
+func (r *UpdateUserRequest) ValidateUpdateUser() map[string]string {
+	errs := make(map[string]string)
+
+	if r.NomorTelepon != nil {
+		nomor := strings.TrimSpace(*r.NomorTelepon)
+
+		if nomor != "" {
+			if ok := utils.IsValidPhone(nomor); !ok {
+				errs["nomor_telepon"] = "format hp tidak valid"
+			}
+		}
 	}
 	return errs
 }

@@ -3,6 +3,7 @@ package mappers
 import (
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/responses"
+	"github.com/ehanz12/api-SneakHub/utils"
 )
 
 func ToUserRes(u *models.User) *responses.UserResponse {
@@ -36,13 +37,28 @@ func ToUserBigRes(u *models.User) *responses.UserBigResponse {
 	}
 
 	return &responses.UserBigResponse{
-		UserID:         u.UserID,
-		Nama:           u.Nama,
-		Email:          u.Email,
-		NomorTelepon:   &nomorTelp,
-		Peran:          u.Peran,
-		StatusAkun:     u.StatusAkun,
-		PreferensiAkun: string(u.PreferensiUkuran),
-		BrandFavorit:   string(u.BrandFavorit),
+		UserID:           u.UserID,
+		Nama:             u.Nama,
+		Email:            u.Email,
+		NomorTelepon:     &nomorTelp,
+		Peran:            u.Peran,
+		StatusAkun:       u.StatusAkun,
+		PreferensiUkuran: utils.MapJSONToStringSlice(u.PreferensiUkuran),
+		BrandFavorit:     utils.MapJSONToStringSlice(u.BrandFavorit),
+	}
+}
+
+func ToUserUpdateRes(u *models.User) *responses.UpdateUserResponse {
+	var nomorTelp string
+	if u.NomorTelepon != nil {
+		nomorTelp = *u.NomorTelepon
+	}
+
+	return &responses.UpdateUserResponse{
+		UserID:           u.UserID,
+		Nama:             u.Nama,
+		NomorTelepon:     &nomorTelp,
+		PreferensiUkuran: utils.MapJSONToStringSlice(u.PreferensiUkuran),
+		BrandFavorit:     utils.MapJSONToStringSlice(u.BrandFavorit),
 	}
 }
