@@ -4,28 +4,68 @@ import (
 	"strings"
 
 	"github.com/ehanz12/api-SneakHub/utils"
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func ProtectedRoute(c *fiber.Ctx) error {
-	auth := c.Get("Authorization")
-	if auth == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Authorization header is missing"})
-	}
-	// validasi format token
-	if !strings.HasPrefix(auth, "Bearer ") {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token format"})
-	}
-	// ambil token
-	token := strings.TrimPrefix(auth, "Bearer ")
+func AuthMiddleware(allowedRoles ...string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		header := c.Get("Authorization")
+		if header == "" {
+			return c.Status(401).JSON(fiber.Map{"error": "missing authorization header"})
+		}
 
-	// validasi token
-	userID, err := utils.ValidateJWT(token)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token"})
+		if !strings.HasPrefix(header, "Bearer ") {
+			return c.Status(401).JSON(fiber.Map{"error": "invalid authorization format"})
+		}
+
+		tokenStr := strings.TrimPrefix(header, "Bearer ")
+
+		token, err := utils.VerifyToken(tokenStr)
+		if err != nil || !token.Valid {
+			return c.Status(401).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{"error": "invalid jwt claims"})
+		}
+
+		role, ok := claims["role"].(string)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{"error": "invalid role claim"})
+		}
+
+		// Cek apakah role ada di allowedRoles
+		roleAllowed := false
+		for _, r := range allowedRoles {
+			if r == role {
+				roleAllowed = true
+				break
+			}
+		}
+		if !roleAllowed {
+			return c.Status(403).JSON(fiber.Map{"error": "akses ditolak untuk role: " + role})
+		}
+
+		userIDFloat, ok := claims["user_id"].(string)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{"error": "invalid user_id claim"})
+		}
+
+		userID := string(userIDFloat)
+
+		c.Locals("user_id", userID)
+		c.Locals("role", role)
+
+		return c.Next()
 	}
-	// simpan user_id ke context
-	c.Locals("user_id", userID)
-	return c.Next()
 }
+
+// Shortcut middleware untuk kemudahan pakai
+var (
+	AllRoles   = AuthMiddleware("customer", "seller", "admin")
+	AdminOnly  = AuthMiddleware("admin")
+	SellerOnly = AuthMiddleware("seller")
+)

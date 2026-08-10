@@ -25,4 +25,6 @@ func SetupRoutes(app *fiber.App) {
 	})
 	api.Use(apiLimiter)
 	SetupUserRoutes(api)
+	SetupSellerRoute(api)
+	SetupCategoryRoute(api)
 }

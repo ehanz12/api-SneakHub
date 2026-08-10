@@ -25,7 +25,7 @@ func RegisterHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "terjadi kesalahan server", "errors": err.Error()})
 	}
-	token, err := utils.GenerateJWT(user.UserID)
+	token, err := utils.GenerateJWT(user.UserID, user.Peran)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "gagal membuat token", "errors": err.Error()})
 	}
@@ -50,7 +50,7 @@ func LoginHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "terjadi kesalahan server", "errors": err.Error()})
 	}
-	token, err := utils.GenerateJWT(user.UserID)
+	token, err := utils.GenerateJWT(user.UserID, user.Peran)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "false", "message": "gagal membuat token", "errors": err.Error()})
 	}

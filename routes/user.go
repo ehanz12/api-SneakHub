@@ -13,6 +13,6 @@ func SetupUserRoutes(api fiber.Router) {
 	auth.Post("/login", handlers.LoginHandler)
 
 	user := api.Group("/users")
-	user.Get("/me", middleware.ProtectedRoute, handlers.MeUserHandler)
-	user.Put("/me", middleware.ProtectedRoute, handlers.UpdateUserHandler)
+	user.Get("/me", middleware.AllRoles, handlers.MeUserHandler)
+	user.Put("/me", middleware.AllRoles, handlers.UpdateUserHandler)
 }
