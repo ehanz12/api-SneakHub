@@ -1,0 +1,30 @@
+package mappers
+
+import (
+	"github.com/ehanz12/api-SneakHub/models"
+	"github.com/ehanz12/api-SneakHub/responses"
+)
+
+func ToUserRes(u *models.User) *responses.UserResponse {
+	nomor_telp := ""
+	if u.NomorTelepon != nil {
+		nomor_telp = *u.NomorTelepon
+	}
+	return &responses.UserResponse{
+		UserID:       u.UserID,
+		Nama:         u.Nama,
+		Email:        u.Email,
+		NomorTelepon: &nomor_telp,
+		Peran:        u.Peran,
+		StatusAkun:   u.StatusAkun,
+	}
+}
+
+func ToLoginRes(u *models.User) *responses.LoginRes {
+	return &responses.LoginRes{
+		UserID: u.UserID,
+		Nama:   u.Nama,
+		Email:  u.Email,
+		Peran:  u.Peran,
+	}
+}
