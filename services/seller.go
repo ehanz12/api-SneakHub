@@ -14,9 +14,14 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 		return nil, errors.New("gagal menyambungkan ke server")
 	}
 	var user models.User
-	if err := tx.Select("user_id").Where("user_id = ?", UserID).First(&user).Error; err != nil {
+	err := tx.Select("user_id").Where("user_id = ?", UserID).First(&user).Error
+	if err != nil {
 		tx.Rollback()
 		return nil, errors.New("user tidak ditemukan")
+	}
+	var exist models.Seller
+	if err := tx.Select("user_id").Where("user_id = ?", UserID).First(&exist).Error; err == nil {
+		return nil, errors.New("user sudah mengajukan menjadi seller")
 	}
 	seller := models.Seller{
 		UserID:        UserID,

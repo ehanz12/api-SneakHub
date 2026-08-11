@@ -65,7 +65,8 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 
 // Shortcut middleware untuk kemudahan pakai
 var (
-	AllRoles   = AuthMiddleware("customer", "seller", "admin")
-	AdminOnly  = AuthMiddleware("admin")
-	SellerOnly = AuthMiddleware("seller")
+	AllRoles        = AuthMiddleware("customer", "seller", "admin")
+	AdminOnly       = AuthMiddleware("admin")
+	SellerOnly      = AuthMiddleware("seller")
+	AdminSellerOnly = AuthMiddleware("seller", "admin")
 )

@@ -3,6 +3,7 @@ module github.com/ehanz12/api-SneakHub
 go 1.26.5
 
 require (
+	github.com/deepteams/webp v1.2.7
 	github.com/gofiber/fiber/v2 v2.52.14
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0

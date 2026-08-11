@@ -15,6 +15,7 @@ type Config struct {
 	DBHost     string
 	DBPort     string
 	Port       string
+	PublicURL  string
 }
 
 // variable dari struct
@@ -34,5 +35,6 @@ func LoadEnv() {
 		DBUser:     os.Getenv("DB_USER"),
 		DBHost:     os.Getenv("DB_HOST"),
 		DBPort:     os.Getenv("DB_PORT"),
+		PublicURL:  os.Getenv("PUBLIC_URL"),
 	}
 }

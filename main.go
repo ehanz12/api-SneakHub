@@ -8,6 +8,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/ehanz12/api-SneakHub/config"
 	"github.com/ehanz12/api-SneakHub/database"
@@ -22,7 +23,6 @@ func main() {
 
 	// connect to database
 	database.ConnectDB()
-
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
@@ -31,6 +31,11 @@ func main() {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true, // jika pake jwt
 	}))
+
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		log.Fatal("⚠️ GAGAL MEMBUAT FOLDER UPLOADS !", err)
+	}
+	app.Static("/uploads", "./uploads")
 
 	routes.SetupRoutes(app)
 
