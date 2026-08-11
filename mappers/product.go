@@ -2,6 +2,7 @@ package mappers
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/responses"
@@ -45,4 +46,74 @@ func ToProductImageListResponse(images []models.ProductImage) []responses.Produc
 		out = append(out, ToProductImageResponse(img))
 	}
 	return out
+}
+
+func unmarshalUkuran(data []byte) []string {
+	var sizes []string
+	if len(data) > 0 {
+		_ = json.Unmarshal(data, &sizes)
+	}
+	return sizes
+}
+
+func firstImageURL(images []models.ProductImage) string {
+	if len(images) == 0 {
+		return ""
+	}
+	return images[0].URLObjectStorage
+}
+
+func ToProductListItemResponse(p models.Product) responses.ProductListItemResponse {
+	item := responses.ProductListItemResponse{
+		ProductID:      p.ProductID,
+		NamaProduk:     p.NamaProduk,
+		Harga:          p.Harga,
+		Kondisi:        strings.ToUpper(p.Kondisi),
+		Stok:           p.Stok,
+		UkuranTersedia: unmarshalUkuran(p.UkuranTersedia),
+		ConditionScore: p.ConditionScore,
+		ImageURL:       firstImageURL(p.Images),
+	}
+	if p.Seller.SellerID != "" {
+		item.Seller = responses.SellerInfoResponse{
+			SellerID:         p.Seller.SellerID,
+			NamaToko:         p.Seller.NamaToko,
+			SellerTrustScore: p.Seller.SellerTrustScore,
+		}
+	}
+	return item
+}
+
+func ToProductListResponse(products []models.Product) []responses.ProductListItemResponse {
+	out := make([]responses.ProductListItemResponse, 0, len(products))
+	for _, p := range products {
+		out = append(out, ToProductListItemResponse(p))
+	}
+	return out
+}
+
+func ToProductDetailResponse(p models.Product) responses.ProductDetailResponse {
+	detail := responses.ProductDetailResponse{
+		ProductID:       p.ProductID,
+		SellerID:        p.SellerID,
+		NamaProduk:      p.NamaProduk,
+		BrandID:         p.BrandID,
+		CategoryID:      p.CategoryID,
+		Kondisi:         strings.ToUpper(p.Kondisi),
+		Deskripsi:       p.Deskripsi,
+		Harga:           p.Harga,
+		Stok:            p.Stok,
+		UkuranTersedia:  unmarshalUkuran(p.UkuranTersedia),
+		ConditionScore:  p.ConditionScore,
+		StatusPublikasi: strings.ToUpper(p.StatusPublikasi),
+		Images:          make([]responses.ProductDetailImageResponse, 0, len(p.Images)),
+	}
+	for _, img := range p.Images {
+		detail.Images = append(detail.Images, responses.ProductDetailImageResponse{
+			ImageID:      img.ImageID,
+			URL:          img.URLObjectStorage,
+			UrutanTampil: img.UrutanTampil,
+		})
+	}
+	return detail
 }
