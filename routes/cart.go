@@ -7,7 +7,7 @@ import (
 )
 
 func SetupCartRoute(api fiber.Router) {
-	cart := api.Group("/cart")
+	cart := api.Group("/carts")
 	cart.Get("/", middleware.CustomerOnly, handlers.GetCartHandler)
 	cart.Post("/items", middleware.CustomerOnly, handlers.AddCartItemsHandler)
 	cart.Put("/items/:cart_item_id", middleware.CustomerOnly, handlers.UpdateCartItemHandler)
