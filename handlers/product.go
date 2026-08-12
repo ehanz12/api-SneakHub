@@ -35,7 +35,7 @@ func GetProductsHandler(c *fiber.Ctx) error {
 		c.Query("sort"),
 	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": "false", "message": "terjadi kesalahan server", "errors": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "terjadi kesalahan server", "errors": err.Error()})
 	}
 
 	totalPages := 0
@@ -52,16 +52,16 @@ func GetProductsHandler(c *fiber.Ctx) error {
 			TotalPages: totalPages,
 		},
 	}
-	return c.Status(200).JSON(fiber.Map{"success": "true", "message": "Produk berhasil diambil.", "data": data})
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Produk berhasil diambil.", "data": data})
 }
 
 func GetProductByIDHandler(c *fiber.Ctx) error {
 	productID := c.Params("product_id")
 	product, err := services.GetProductByIDService(productID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": "false", "message": "Produk tidak ditemukan."})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Produk tidak ditemukan."})
 	}
-	return c.Status(200).JSON(fiber.Map{"success": "true", "message": "Detail produk berhasil diambil.", "data": mappers.ToProductDetailResponse(*product)})
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Detail produk berhasil diambil.", "data": mappers.ToProductDetailResponse(*product)})
 }
 
 func CreateProductHandler(c *fiber.Ctx) error {
@@ -105,4 +105,19 @@ func UpdateProductHandler(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{"status": "true", "message": "product berhasil di update", "data": mappers.ToProductUpdateResponse(*product)})
+}
+
+func DeleteProductHandler(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	productID := c.Params("product_id")
+
+	if err := services.DeleteProductService(userID, productID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"success": true,
+		"message": "Produk berhasil dihapus.",
+		"data":    nil,
+	})
 }

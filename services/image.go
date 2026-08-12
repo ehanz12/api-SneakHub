@@ -121,6 +121,54 @@ func UploadProductImageService(userID, productID string, data []byte, urutanTamp
 	return &image, nil
 }
 
+// DeleteProductImageService menghapus gambar produk beserta embedding dan file fisiknya.
+func DeleteProductImageService(userID, productID, imageID string) error {
+	tx := database.DB.Begin()
+	if tx.Error != nil {
+		tx.Rollback()
+		return errors.New("gagal menyambung server")
+	}
+
+	var sellerID models.Seller
+	if err := tx.Select("seller_id", "user_id", "status_verifikasi").Where("user_id = ? AND status_verifikasi = ?", userID, "verified").First(&sellerID).Error; err != nil {
+		tx.Rollback()
+		return errors.New("user bukan Seller")
+	}
+
+	var product models.Product
+	if err := tx.Where("product_id = ? AND seller_id = ?", productID, sellerID.SellerID).First(&product).Error; err != nil {
+		tx.Rollback()
+		return errors.New("product tidak ditemukan")
+	}
+
+	var image models.ProductImage
+	if err := tx.Where("image_id = ? AND product_id = ?", imageID, productID).First(&image).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gambar tidak ditemukan")
+	}
+
+	if err := tx.Where("image_id = ?", imageID).Delete(&models.ImageEmbedding{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus embedding gambar")
+	}
+
+	if err := tx.Delete(&image).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data gambar")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data")
+	}
+
+	if fileName := filepath.Base(image.URLObjectStorage); fileName != "." && fileName != "/" {
+		os.Remove(filepath.Join(UploadDir, fileName))
+	}
+
+	return nil
+}
+
 // ListProductImagesService mengambil daftar gambar milik sebuah produk.
 func ListProductImagesService(productID string) ([]models.ProductImage, error) {
 	var count int64

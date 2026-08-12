@@ -28,4 +28,5 @@ func SetupRoutes(app *fiber.App) {
 	SetupSellerRoute(api)
 	SetupCategoryRoute(api)
 	SetupProductRoute(api)
+	SetupCartRoute(api)
 }

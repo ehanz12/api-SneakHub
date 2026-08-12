@@ -56,6 +56,22 @@ func UploadProductImageHandler(c *fiber.Ctx) error {
 	})
 }
 
+func DeleteProductImageHandler(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	productID := c.Params("product_id")
+	imageID := c.Params("image_id")
+
+	if err := services.DeleteProductImageService(userID, productID, imageID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"success": true,
+		"message": "Gambar berhasil dihapus.",
+		"data":    nil,
+	})
+}
+
 func ListProductImagesHandler(c *fiber.Ctx) error {
 	productID := c.Params("product_id")
 

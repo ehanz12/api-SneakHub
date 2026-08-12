@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ehanz12/api-SneakHub/database"
@@ -213,4 +215,98 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 		return nil, errors.New("gagal menyimpan data")
 	}
 	return &product, nil
+}
+
+// DeleteProductService menghapus produk beserta data terkait.
+// Diblokir jika produk masih memiliki pesanan aktif.
+func DeleteProductService(userID, productID string) error {
+	tx := database.DB.Begin()
+	if tx.Error != nil {
+		tx.Rollback()
+		return errors.New("gagal menyambung server")
+	}
+
+	var sellerID models.Seller
+	err := tx.Select("seller_id", "user_id", "status_verifikasi").Where("user_id = ? AND status_verifikasi = ?", userID, "verified").First(&sellerID).Error
+	if err != nil {
+		tx.Rollback()
+		return errors.New("user bukan Seller")
+	}
+
+	var product models.Product
+	if err := tx.Where("product_id = ? AND seller_id = ?", productID, sellerID.SellerID).First(&product).Error; err != nil {
+		tx.Rollback()
+		return errors.New("product tidak ditemukan")
+	}
+
+	var activeOrderCount int64
+	if err := tx.Model(&models.OrderItem{}).
+		Joins("JOIN orders ON orders.order_id = order_items.order_id").
+		Where("order_items.product_id = ? AND orders.status_order IN ?", productID, []string{"pending", "diproses", "dikirim"}).
+		Count(&activeOrderCount).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal memeriksa pesanan aktif")
+	}
+	if activeOrderCount > 0 {
+		tx.Rollback()
+		return errors.New("produk masih memiliki pesanan aktif")
+	}
+
+	var images []models.ProductImage
+	if err := tx.Where("product_id = ?", productID).Find(&images).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal memuat gambar produk")
+	}
+
+	if err := tx.Where("product_id = ?", productID).Delete(&models.ImageEmbedding{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.ProductImage{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.ProductVariant{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.ConditionScore{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.PriceHistory{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Model(&models.RecommendationData{}).
+		Where("JSON_SEARCH(daftar_product_id, 'one', ?) IS NOT NULL", productID).
+		Update("daftar_product_id", gorm.Expr("JSON_REMOVE(daftar_product_id, JSON_UNQUOTE(JSON_SEARCH(daftar_product_id, 'one', ?)))", productID)).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.Wishlist{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.CartItem{}).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus data terkait produk")
+	}
+
+	if err := tx.Delete(&product).Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus product")
+	}
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return errors.New("gagal menghapus product")
+	}
+
+	for _, image := range images {
+		if fileName := filepath.Base(image.URLObjectStorage); fileName != "." && fileName != "/" {
+			os.Remove(filepath.Join(UploadDir, fileName))
+		}
+	}
+
+	return nil
 }
