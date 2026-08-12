@@ -3,7 +3,6 @@ package responses
 type CartItemResponse struct {
 	CartItemID string  `json:"cart_item_id"`
 	ProductID  string  `json:"product_id"`
-	VariantID  *string `json:"variant_id,omitempty"`
 	Jumlah     int     `json:"jumlah"`
 	Subtotal   float64 `json:"subtotal"`
 }

@@ -16,7 +16,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&ProductImage{},
 		&ImageEmbedding{},
 		&ConditionScore{},
-		&ProductVariant{},
 		&RecommendationData{},
 		&PriceHistory{},
 		&PricePrediction{},

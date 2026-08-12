@@ -27,7 +27,6 @@ type Product struct {
 	Images       []ProductImage   `gorm:"foreignKey:ProductID;references:ProductID" json:"images,omitempty"`
 	Embeddings   []ImageEmbedding `gorm:"foreignKey:ProductID;references:ProductID" json:"embeddings,omitempty"`
 	Condition    *ConditionScore  `gorm:"foreignKey:ProductID;references:ProductID" json:"condition,omitempty"`
-	Variants     []ProductVariant `gorm:"foreignKey:ProductID;references:ProductID" json:"variants,omitempty"`
 	PriceHistory []PriceHistory   `gorm:"foreignKey:ProductID;references:ProductID" json:"price_history,omitempty"`
 	Wishlists    []Wishlist       `gorm:"foreignKey:ProductID;references:ProductID" json:"wishlists,omitempty"`
 	CartItems    []CartItem       `gorm:"foreignKey:ProductID;references:ProductID" json:"cart_items,omitempty"`

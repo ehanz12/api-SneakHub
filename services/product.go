@@ -266,10 +266,6 @@ func DeleteProductService(userID, productID string) error {
 		tx.Rollback()
 		return errors.New("gagal menghapus data terkait produk")
 	}
-	if err := tx.Where("product_id = ?", productID).Delete(&models.ProductVariant{}).Error; err != nil {
-		tx.Rollback()
-		return errors.New("gagal menghapus data terkait produk")
-	}
 	if err := tx.Where("product_id = ?", productID).Delete(&models.ConditionScore{}).Error; err != nil {
 		tx.Rollback()
 		return errors.New("gagal menghapus data terkait produk")

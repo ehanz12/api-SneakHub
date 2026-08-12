@@ -13,7 +13,6 @@ func ToCartItemResponse(ci models.CartItem) responses.CartItemResponse {
 	return responses.CartItemResponse{
 		CartItemID: ci.CartItemID,
 		ProductID:  ci.ProductID,
-		VariantID:  ci.VariantID,
 		Jumlah:     ci.Jumlah,
 		Subtotal:   subtotal(ci),
 	}

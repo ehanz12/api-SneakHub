@@ -27,7 +27,7 @@ func getOrCreateCart(tx *gorm.DB, customerID string) (*models.Cart, error) {
 }
 
 // AddCartItemsService menambahkan satu atau banyak produk ke cart secara batch.
-// Produk dengan product_id (dan variant) yang sama akan di-merge jumlahnya.
+// Produk dengan product_id yang sama akan di-merge jumlahnya.
 func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]models.CartItem, float64, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -53,34 +53,11 @@ func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]m
 			return nil, 0, errors.New("produk tidak ditemukan atau tidak aktif: " + item.ProductID)
 		}
 
-		var variantID *string
-		harga := product.Harga
-		stok := product.Stok
-		if item.VariantID != "" {
-			var variant models.ProductVariant
-			if err := tx.Select("variant_id", "harga", "stok").
-				Where("variant_id = ? AND product_id = ?", item.VariantID, item.ProductID).
-				First(&variant).Error; err != nil {
-				tx.Rollback()
-				return nil, 0, errors.New("variant tidak ditemukan")
-			}
-			variantID = &item.VariantID
-			harga = variant.Harga
-			stok = variant.Stok
-		}
-
-		query := tx.Where("cart_id = ? AND product_id = ?", cart.CartID, item.ProductID)
-		if variantID != nil {
-			query = query.Where("variant_id = ?", *variantID)
-		} else {
-			query = query.Where("variant_id IS NULL")
-		}
-
 		var existing models.CartItem
-		err := query.First(&existing).Error
+		err := tx.Where("cart_id = ? AND product_id = ?", cart.CartID, item.ProductID).First(&existing).Error
 		if err == nil {
 			newJumlah := existing.Jumlah + item.Jumlah
-			if newJumlah > stok {
+			if newJumlah > product.Stok {
 				tx.Rollback()
 				return nil, 0, errors.New("stok produk tidak mencukupi: " + item.ProductID)
 			}
@@ -98,7 +75,7 @@ func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]m
 			return nil, 0, errors.New("gagal memuat item cart")
 		}
 
-		if item.Jumlah > stok {
+		if item.Jumlah > product.Stok {
 			tx.Rollback()
 			return nil, 0, errors.New("stok produk tidak mencukupi: " + item.ProductID)
 		}
@@ -106,16 +83,15 @@ func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]m
 		cartItem := models.CartItem{
 			CartID:               cart.CartID,
 			ProductID:            item.ProductID,
-			VariantID:            variantID,
 			Jumlah:               item.Jumlah,
-			HargaSaatDitambahkan: harga,
+			HargaSaatDitambahkan: product.Harga,
 		}
 		if err := tx.Create(&cartItem).Error; err != nil {
 			tx.Rollback()
 			return nil, 0, errors.New("gagal menambahkan item ke cart")
 		}
 		added = append(added, cartItem)
-		total += harga * float64(item.Jumlah)
+		total += product.Harga * float64(item.Jumlah)
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -162,23 +138,12 @@ func UpdateCartItemService(customerID, cartItemID string, jumlah int) (*models.C
 		return nil, errors.New("item cart tidak ditemukan")
 	}
 
-	var stok int
-	if item.VariantID != nil {
-		var variant models.ProductVariant
-		if err := tx.Select("stok").Where("variant_id = ?", *item.VariantID).First(&variant).Error; err != nil {
-			tx.Rollback()
-			return nil, errors.New("variant tidak ditemukan")
-		}
-		stok = variant.Stok
-	} else {
-		var product models.Product
-		if err := tx.Select("stok").Where("product_id = ?", item.ProductID).First(&product).Error; err != nil {
-			tx.Rollback()
-			return nil, errors.New("produk tidak ditemukan")
-		}
-		stok = product.Stok
+	var product models.Product
+	if err := tx.Select("stok").Where("product_id = ?", item.ProductID).First(&product).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("produk tidak ditemukan")
 	}
-	if jumlah > stok {
+	if jumlah > product.Stok {
 		tx.Rollback()
 		return nil, errors.New("stok produk tidak mencukupi")
 	}

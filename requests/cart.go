@@ -7,7 +7,6 @@ import (
 
 type CartItemRequest struct {
 	ProductID string `json:"product_id"`
-	VariantID string `json:"variant_id"`
 	Jumlah    int    `json:"jumlah"`
 }
 
