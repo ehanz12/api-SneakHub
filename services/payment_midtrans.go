@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -50,8 +51,9 @@ type midtransSnapRequest struct {
 		Email     string `json:"email,omitempty"`
 		Phone     string `json:"phone,omitempty"`
 	} `json:"customer_details,omitempty"`
-	EnabledPayments []string `json:"enabled_payments,omitempty"`
-	Expiry          struct {
+	// EnabledPayments sengaja tidak dikirim (field tidak dipakai) supaya Snap
+	// menampilkan semua channel yang aktif di dashboard merchant.
+	Expiry struct {
 		StartTime string `json:"start_time"`
 		Unit      string `json:"unit"`
 		Duration  int    `json:"duration"`
@@ -60,10 +62,11 @@ type midtransSnapRequest struct {
 }
 
 type midtransSnapResponse struct {
-	StatusCode    string `json:"status_code"`
-	StatusMessage string `json:"status_message"`
-	Token         string `json:"token"`
-	RedirectURL   string `json:"redirect_url"`
+	StatusCode    string   `json:"status_code"`
+	StatusMessage string   `json:"status_message"`
+	ErrorMessages []string `json:"error_messages"`
+	Token         string   `json:"token"`
+	RedirectURL   string   `json:"redirect_url"`
 }
 
 // MidtransNotificationPayload mewakili body callback dari Midtrans.
@@ -92,19 +95,6 @@ func ensureMidtransConfigured() error {
 		return errors.New("MIDTRANS_SERVER_KEY belum diisi di .env")
 	}
 	return nil
-}
-
-// midtransEnabledPayments memetakan metode pembayaran yang dipakai checkout
-// (kode channel Tripay) ke daftar enabled_payments Midtrans.
-func midtransEnabledPayments(metode string) []string {
-	switch strings.ToUpper(strings.TrimSpace(metode)) {
-	case "QRIS2":
-		return []string{"qris"}
-	case "BCAVA", "BANK_TRANSFER", "VA":
-		return []string{"bank_transfer", "bca_va"}
-	default:
-		return []string{"qris"}
-	}
 }
 
 // createMidtransPayment membuat transaksi Snap (open payment) dan
@@ -145,7 +135,6 @@ func createMidtransPayment(orderID, metode string, amount int64, items []TripayO
 	req.CustomerDetails.FirstName = customerName
 	req.CustomerDetails.Email = customerEmail
 	req.CustomerDetails.Phone = customerPhone
-	req.EnabledPayments = midtransEnabledPayments(metode)
 	req.Expiry.StartTime = time.Now().UTC().Format("2006-01-02 15:04:05 -0700")
 	req.Expiry.Unit = "hours"
 	req.Expiry.Duration = 24
@@ -182,7 +171,13 @@ func createMidtransPayment(orderID, metode string, amount int64, items []TripayO
 		return "", "", errors.New("respons Midtrans tidak valid")
 	}
 	if payload.StatusCode != "201" {
-		return "", "", fmt.Errorf("Midtrans: %s", payload.StatusMessage)
+		msg := strings.TrimSpace(payload.StatusMessage)
+		if len(payload.ErrorMessages) > 0 {
+			msg = strings.Join(payload.ErrorMessages, "; ")
+		}
+		log.Printf("Midtrans gagal (HTTP %d / code %s): %s | body: %s",
+			res.StatusCode, payload.StatusCode, msg, string(resBody))
+		return "", "", fmt.Errorf("Midtrans (HTTP %d): %s", res.StatusCode, msg)
 	}
 	if strings.TrimSpace(payload.RedirectURL) == "" {
 		return "", "", errors.New("Midtrans tidak mengembalikan redirect_url")

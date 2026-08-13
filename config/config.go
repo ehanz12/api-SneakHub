@@ -18,6 +18,7 @@ type Config struct {
 	Port        string
 	PublicURL   string
 	PaymentMode string
+	CORSOrigins string
 
 	TripayAPIKey       string
 	TripayPrivateKey   string
@@ -40,13 +41,14 @@ func LoadEnv() {
 
 	// instalasi untuk config
 	AppConfig = &Config{
-		Port:       os.Getenv("PORT"),
-		DBName:     os.Getenv("DB_NAME"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBUser:     os.Getenv("DB_USER"),
-		DBHost:     os.Getenv("DB_HOST"),
-		DBPort:     os.Getenv("DB_PORT"),
-		PublicURL:  os.Getenv("PUBLIC_URL"),
+		Port:        os.Getenv("PORT"),
+		DBName:      os.Getenv("DB_NAME"),
+		DBPassword:  os.Getenv("DB_PASSWORD"),
+		DBUser:      os.Getenv("DB_USER"),
+		DBHost:      os.Getenv("DB_HOST"),
+		DBPort:      os.Getenv("DB_PORT"),
+		PublicURL:   os.Getenv("PUBLIC_URL"),
+		CORSOrigins: os.Getenv("CORS_ORIGINS"),
 
 		PaymentMode: normalizePaymentMode(os.Getenv("PAYMENT_MODE")),
 

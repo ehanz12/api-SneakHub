@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 
 	"github.com/ehanz12/api-SneakHub/database"
@@ -100,7 +101,7 @@ func createCheckoutPayment(tx *gorm.DB, order *models.Order, items []models.Cart
 		orderItems = append(orderItems, TripayOrderItem{
 			Sku:      item.ProductID,
 			Name:     item.Product.NamaProduk,
-			Price:    int64(item.HargaSaatDitambahkan),
+			Price:    int64(math.Round(item.HargaSaatDitambahkan)),
 			Quantity: int32(item.Jumlah),
 		})
 	}

@@ -9,6 +9,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/ehanz12/api-SneakHub/config"
 	"github.com/ehanz12/api-SneakHub/database"
@@ -25,8 +26,13 @@ func main() {
 	database.ConnectDB()
 	app := fiber.New()
 
+	corsOrigins := config.AppConfig.CORSOrigins
+	if strings.TrimSpace(corsOrigins) == "" {
+		corsOrigins = "http://localhost:3060"
+	}
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3060",
+		AllowOrigins:     corsOrigins,
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true, // jika pake jwt
