@@ -177,9 +177,6 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 	if r.Kondisi != "" {
 		product.Kondisi = r.Kondisi
 	}
-	if r.Stok <= 0 {
-		product.Stok = r.Stok
-	}
 
 	if r.Deskripsi != nil {
 		product.Deskripsi = r.Deskripsi
