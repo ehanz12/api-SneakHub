@@ -170,7 +170,7 @@ func createMidtransPayment(orderID, metode string, amount int64, items []TripayO
 	if err := json.Unmarshal(resBody, &payload); err != nil {
 		return "", "", errors.New("respons Midtrans tidak valid")
 	}
-	if payload.StatusCode != "201" {
+	if res.StatusCode != http.StatusCreated {
 		msg := strings.TrimSpace(payload.StatusMessage)
 		if len(payload.ErrorMessages) > 0 {
 			msg = strings.Join(payload.ErrorMessages, "; ")
