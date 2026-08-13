@@ -34,7 +34,7 @@ func groupCartItemsBySeller(items []models.CartItem) map[string][]models.CartIte
 	return groups
 }
 
-func buildAddressSnapshot(address models.Address) (json.RawMessage, error) {
+func buildAlamatSnapshot(namaPenerima, nomorTelepon, alamat, kota, provinsi, kodePos string) ([]byte, error) {
 	payload := struct {
 		NamaPenerima string `json:"nama_penerima"`
 		NomorTelepon string `json:"nomor_telepon"`
@@ -43,12 +43,12 @@ func buildAddressSnapshot(address models.Address) (json.RawMessage, error) {
 		Provinsi     string `json:"provinsi"`
 		KodePos      string `json:"kode_pos"`
 	}{
-		NamaPenerima: address.NamaPenerima,
-		NomorTelepon: address.NomorTelepon,
-		Alamat:       address.Alamat,
-		Kota:         address.Kota,
-		Provinsi:     address.Provinsi,
-		KodePos:      address.KodePos,
+		NamaPenerima: namaPenerima,
+		NomorTelepon: nomorTelepon,
+		Alamat:       alamat,
+		Kota:         kota,
+		Provinsi:     provinsi,
+		KodePos:      kodePos,
 	}
 	return json.Marshal(payload)
 }
@@ -60,7 +60,7 @@ func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address
 	}
 	total := subtotal + BiayaPengirimanFlat
 
-	snapshot, err := buildAddressSnapshot(address)
+	snapshot, err := buildAlamatSnapshot(address.NamaPenerima, address.NomorTelepon, address.Alamat, address.Kota, address.Provinsi, address.KodePos)
 	if err != nil {
 		return nil, errors.New("gagal menyimpan data alamat")
 	}
@@ -143,7 +143,7 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("koneksi database bermasalah")
 	}
 
 	var cart models.Cart
@@ -224,7 +224,7 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("data pesanan gagal tersimpan")
 	}
 
 	return orders, nil

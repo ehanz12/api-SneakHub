@@ -29,15 +29,15 @@ type SellerInfoResponse struct {
 }
 
 type ProductListItemResponse struct {
-	ProductID       string              `json:"product_id"`
-	NamaProduk      string              `json:"nama_produk"`
-	Harga           float64             `json:"harga"`
-	Kondisi         string              `json:"kondisi"`
-	Stok            int                 `json:"stok"`
-	UkuranTersedia  []string            `json:"ukuran_tersedia"`
-	ConditionScore  *float64            `json:"condition_score"`
-	ImageURL        string              `json:"image_url"`
-	Seller          SellerInfoResponse  `json:"seller"`
+	ProductID      string             `json:"product_id"`
+	NamaProduk     string             `json:"nama_produk"`
+	Harga          float64            `json:"harga"`
+	Kondisi        string             `json:"kondisi"`
+	Stok           int                `json:"stok"`
+	UkuranTersedia []string           `json:"ukuran_tersedia"`
+	ConditionScore *float64           `json:"condition_score"`
+	ImageURL       string             `json:"image_url"`
+	Seller         SellerInfoResponse `json:"seller"`
 }
 
 type PaginationResponse struct {
@@ -59,18 +59,18 @@ type ProductDetailImageResponse struct {
 }
 
 type ProductDetailResponse struct {
-	ProductID       string                     `json:"product_id"`
-	SellerID        string                     `json:"seller_id"`
-	NamaProduk      string                     `json:"nama_produk"`
-	BrandID         string                     `json:"brand_id"`
-	CategoryID      string                     `json:"category_id"`
-	Kondisi         string                     `json:"kondisi"`
-	Deskripsi       *string                    `json:"deskripsi,omitempty"`
-	Harga           float64                    `json:"harga"`
-	Stok            int                        `json:"stok"`
-	UkuranTersedia  []string                   `json:"ukuran_tersedia"`
-	ConditionScore  *float64                   `json:"condition_score"`
-	StatusPublikasi string                     `json:"status_publikasi"`
+	ProductID       string                       `json:"product_id"`
+	SellerID        string                       `json:"seller_id"`
+	NamaProduk      string                       `json:"nama_produk"`
+	BrandID         string                       `json:"brand_id"`
+	CategoryID      string                       `json:"category_id"`
+	Kondisi         string                       `json:"kondisi"`
+	Deskripsi       *string                      `json:"deskripsi,omitempty"`
+	Harga           float64                      `json:"harga"`
+	Stok            int                          `json:"stok"`
+	UkuranTersedia  []string                     `json:"ukuran_tersedia"`
+	ConditionScore  *float64                     `json:"condition_score"`
+	StatusPublikasi string                       `json:"status_publikasi"`
 	Images          []ProductDetailImageResponse `json:"images"`
 }
 

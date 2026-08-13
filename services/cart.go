@@ -32,7 +32,7 @@ func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]m
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, 0, errors.New("gagal menyambung server")
+		return nil, 0, errors.New("gagal koneksi ke database")
 	}
 
 	cart, err := getOrCreateCart(tx, customerID)
@@ -96,7 +96,7 @@ func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]m
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, 0, errors.New("gagal menyimpan data")
+		return nil, 0, errors.New("data cart gagal tersimpan")
 	}
 
 	return added, total, nil
@@ -123,7 +123,7 @@ func UpdateCartItemService(customerID, cartItemID string, jumlah int) (*models.C
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("gagal koneksi ke database")
 	}
 
 	var cart models.Cart
@@ -156,7 +156,7 @@ func UpdateCartItemService(customerID, cartItemID string, jumlah int) (*models.C
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("data cart gagal tersimpan")
 	}
 
 	return &item, nil
@@ -166,7 +166,7 @@ func DeleteCartItemService(customerID, cartItemID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("gagal koneksi ke database")
 	}
 
 	var cart models.Cart
@@ -188,7 +188,7 @@ func DeleteCartItemService(customerID, cartItemID string) error {
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return errors.New("gagal menyimpan data")
+		return errors.New("data cart gagal tersimpan")
 	}
 
 	return nil

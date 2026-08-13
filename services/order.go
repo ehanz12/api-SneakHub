@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 
@@ -92,30 +91,11 @@ func GetOrderService(userID, role, orderID string) (*models.Order, error) {
 	return &order, nil
 }
 
-func buildOrderAlamatSnapshot(a requests.OrderAlamatRequest) ([]byte, error) {
-	payload := struct {
-		NamaPenerima string `json:"nama_penerima"`
-		NomorTelepon string `json:"nomor_telepon"`
-		Alamat       string `json:"alamat"`
-		Kota         string `json:"kota"`
-		Provinsi     string `json:"provinsi"`
-		KodePos      string `json:"kode_pos"`
-	}{
-		NamaPenerima: a.NamaPenerima,
-		NomorTelepon: a.NomorTelepon,
-		Alamat:       a.Alamat,
-		Kota:         a.Kota,
-		Provinsi:     a.Provinsi,
-		KodePos:      a.KodePos,
-	}
-	return json.Marshal(payload)
-}
-
 func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*models.Order, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("transaksi database gagal dimulai")
 	}
 
 	customerID := r.CustomerID
@@ -181,7 +161,14 @@ func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*mo
 		subtotal += product.Harga * float64(item.Jumlah)
 	}
 
-	snapshot, err := buildOrderAlamatSnapshot(r.AlamatPengiriman)
+	snapshot, err := buildAlamatSnapshot(
+		r.AlamatPengiriman.NamaPenerima,
+		r.AlamatPengiriman.NomorTelepon,
+		r.AlamatPengiriman.Alamat,
+		r.AlamatPengiriman.Kota,
+		r.AlamatPengiriman.Provinsi,
+		r.AlamatPengiriman.KodePos,
+	)
 	if err != nil {
 		tx.Rollback()
 		return nil, errors.New("gagal menyimpan data alamat")
@@ -221,7 +208,7 @@ func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*mo
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("perubahan order gagal disimpan")
 	}
 
 	return &order, nil
@@ -231,7 +218,7 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("transaksi database gagal dimulai")
 	}
 
 	query, err := orderScopeQuery(tx.Model(&models.Order{}), userID, role)
@@ -262,7 +249,7 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("perubahan order gagal disimpan")
 	}
 
 	return &order, nil
@@ -276,7 +263,7 @@ func DeleteOrderService(userID, role, orderID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("transaksi database gagal dimulai")
 	}
 
 	query, err := orderScopeQuery(tx.Model(&models.Order{}), userID, role)
@@ -309,7 +296,7 @@ func DeleteOrderService(userID, role, orderID string) error {
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return errors.New("gagal menyimpan data")
+		return errors.New("perubahan order gagal disimpan")
 	}
 
 	return nil

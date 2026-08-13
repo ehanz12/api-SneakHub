@@ -16,27 +16,27 @@ func UploadProductImageHandler(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("gambar")
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "file gambar wajib diisi", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "file gambar wajib diisi", "errors": err.Error()})
 	}
 
 	urutanTampil := 0
 	if v := c.FormValue("urutan_tampil"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 0 {
-			return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"status": false, "message": "kesalahan validasi", "errors": fiber.Map{"urutan_tampil": "urutan tampil harus angka >= 0"}})
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"success": false, "message": "kesalahan validasi", "errors": fiber.Map{"urutan_tampil": "urutan tampil harus angka >= 0"}})
 		}
 		urutanTampil = n
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "gagal membaca file gambar", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "gagal membaca file gambar", "errors": err.Error()})
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(io.LimitReader(file, services.MaxImageSize+1))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "gagal membaca file gambar", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "gagal membaca file gambar", "errors": err.Error()})
 	}
 
 	baseURL := config.AppConfig.PublicURL
@@ -46,11 +46,11 @@ func UploadProductImageHandler(c *fiber.Ctx) error {
 
 	image, err := services.UploadProductImageService(userID, productID, data, urutanTampil, baseURL)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 
 	return c.Status(201).JSON(fiber.Map{
-		"status":  true,
+		"success": true,
 		"message": "Gambar berhasil diunggah.",
 		"data":    mappers.ToProductImageResponse(*image),
 	})
@@ -77,11 +77,11 @@ func ListProductImagesHandler(c *fiber.Ctx) error {
 
 	images, err := services.ListProductImagesService(productID)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 
 	return c.Status(200).JSON(fiber.Map{
-		"status":  true,
+		"success": true,
 		"message": "Daftar gambar produk.",
 		"data":    mappers.ToProductImageListResponse(images),
 	})
@@ -90,7 +90,7 @@ func ListProductImagesHandler(c *fiber.Ctx) error {
 func SearchProductByImageHandler(c *fiber.Ctx) error {
 	fileHeader, err := c.FormFile("gambar")
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "file gambar wajib diisi", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "file gambar wajib diisi", "errors": err.Error()})
 	}
 
 	limit := 10
@@ -102,22 +102,22 @@ func SearchProductByImageHandler(c *fiber.Ctx) error {
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "gagal membaca file gambar", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "gagal membaca file gambar", "errors": err.Error()})
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(io.LimitReader(file, services.MaxImageSize+1))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "gagal membaca file gambar", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "gagal membaca file gambar", "errors": err.Error()})
 	}
 
 	results, err := services.SearchProductByImageService(data, limit)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": false, "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 
 	return c.Status(200).JSON(fiber.Map{
-		"status":  true,
+		"success": true,
 		"message": "Hasil pencarian berdasarkan gambar.",
 		"data":    results,
 	})

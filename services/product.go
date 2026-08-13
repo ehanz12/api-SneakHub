@@ -18,7 +18,7 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("gagal koneksi ke server")
 	}
 	err := tx.Select("seller_id", "user_id", "status_verifikasi").Where("user_id = ? AND status_verifikasi = ?", userID, "verified").First(&sellerID).Error
 	if err != nil {
@@ -62,7 +62,7 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("data produk gagal disimpan")
 	}
 
 	return &product, nil
@@ -143,7 +143,7 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("gagal koneksi ke server")
 	}
 	err := tx.Select("seller_id", "user_id", "status_verifikasi").Where("user_id = ? AND status_verifikasi = ?", userID, "verified").First(&sellerID).Error
 	if err != nil {
@@ -209,7 +209,7 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("data produk gagal disimpan")
 	}
 	return &product, nil
 }
@@ -220,7 +220,7 @@ func DeleteProductService(userID, productID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("gagal koneksi ke server")
 	}
 
 	var sellerID models.Seller

@@ -19,7 +19,7 @@ func CreateAddressService(userID string, r requests.AddressCreateRequest) (*mode
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("koneksi ke database gagal")
 	}
 
 	if r.IsDefault {
@@ -46,7 +46,7 @@ func CreateAddressService(userID string, r requests.AddressCreateRequest) (*mode
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("perubahan alamat gagal disimpan")
 	}
 
 	return &address, nil
@@ -82,7 +82,7 @@ func UpdateAddressService(userID, addressID string, r requests.AddressUpdateRequ
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("koneksi ke database gagal")
 	}
 
 	var address models.Address
@@ -130,7 +130,7 @@ func UpdateAddressService(userID, addressID string, r requests.AddressUpdateRequ
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("perubahan alamat gagal disimpan")
 	}
 
 	return &address, nil
@@ -140,7 +140,7 @@ func DeleteAddressService(userID, addressID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("koneksi ke database gagal")
 	}
 
 	res := tx.Where("address_id = ? AND user_id = ?", addressID, userID).Delete(&models.Address{})
@@ -155,7 +155,7 @@ func DeleteAddressService(userID, addressID string) error {
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return errors.New("gagal menyimpan data")
+		return errors.New("perubahan alamat gagal disimpan")
 	}
 
 	return nil

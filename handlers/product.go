@@ -68,21 +68,21 @@ func CreateProductHandler(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	var r requests.CreateProduct
 	if err := c.BodyParser(&r); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": "false", "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 	if errs := r.Validate(); len(errs) > 0 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"status":  "error",
+			"success": false,
 			"message": "kesalahan validasi",
 			"errors":  errs,
 		})
 	}
 	product, err := services.CreateProductService(userID, r)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": "false", "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 
-	return c.Status(201).JSON(fiber.Map{"status": "true", "message": "product berhasil dibuat", "data": mappers.ToProductResponse(*product)})
+	return c.Status(201).JSON(fiber.Map{"success": true, "message": "product berhasil dibuat", "data": mappers.ToProductResponse(*product)})
 }
 
 func UpdateProductHandler(c *fiber.Ctx) error {
@@ -90,21 +90,21 @@ func UpdateProductHandler(c *fiber.Ctx) error {
 	productID := c.Params("product_id")
 	var r requests.CreateProduct
 	if err := c.BodyParser(&r); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": "false", "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 	if errs := r.Validate(); len(errs) > 0 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"status":  "error",
+			"success": false,
 			"message": "kesalahan validasi",
 			"errors":  errs,
 		})
 	}
 	product, err := services.UpdateProductService(userID, productID, r)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": "false", "message": "request gagal", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}
 
-	return c.Status(201).JSON(fiber.Map{"status": "true", "message": "product berhasil di update", "data": mappers.ToProductUpdateResponse(*product)})
+	return c.Status(201).JSON(fiber.Map{"success": true, "message": "product berhasil di update", "data": mappers.ToProductUpdateResponse(*product)})
 }
 
 func DeleteProductHandler(c *fiber.Ctx) error {

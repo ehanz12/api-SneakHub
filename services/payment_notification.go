@@ -14,7 +14,7 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("koneksi database gagal")
 	}
 
 	var payment models.Payment
@@ -60,7 +60,7 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return errors.New("gagal menyimpan data")
+		return errors.New("status pembayaran gagal disimpan")
 	}
 
 	return nil

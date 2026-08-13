@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	MaxImageSize  = 5 * 1024 * 1024
-	UploadDir     = "uploads"
-	defaultLimit  = 10
+	MaxImageSize   = 5 * 1024 * 1024
+	UploadDir      = "uploads"
+	defaultLimit   = 10
 	maxSearchLimit = 50
 )
 
@@ -38,7 +38,7 @@ func UploadProductImageService(userID, productID string, data []byte, urutanTamp
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("gagal terhubung ke database")
 	}
 
 	var sellerID models.Seller
@@ -115,7 +115,7 @@ func UploadProductImageService(userID, productID string, data []byte, urutanTamp
 	if err := tx.Commit().Error; err != nil {
 		os.Remove(filePath)
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("data gambar gagal tersimpan")
 	}
 
 	return &image, nil
@@ -126,7 +126,7 @@ func DeleteProductImageService(userID, productID, imageID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return errors.New("gagal menyambung server")
+		return errors.New("gagal terhubung ke database")
 	}
 
 	var sellerID models.Seller

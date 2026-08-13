@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/ehanz12/api-SneakHub/config"
-	seeders "github.com/ehanz12/api-SneakHub/database/sedders"
+	seeders "github.com/ehanz12/api-SneakHub/database/seeders"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

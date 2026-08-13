@@ -13,7 +13,7 @@ func CreateReviewService(customerID, orderID string, r requests.CreateReviewRequ
 	tx := database.DB.Begin()
 	if tx.Error != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyambung server")
+		return nil, errors.New("koneksi database gagal")
 	}
 
 	var order models.Order
@@ -62,7 +62,7 @@ func CreateReviewService(customerID, orderID string, r requests.CreateReviewRequ
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return nil, errors.New("gagal menyimpan data")
+		return nil, errors.New("review gagal tersimpan")
 	}
 
 	return &review, nil
