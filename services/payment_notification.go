@@ -8,6 +8,11 @@ import (
 	"github.com/ehanz12/api-SneakHub/models"
 )
 
+// ErrPaymentNotFound menandakan order_id pada callback tidak ada di database.
+// Callback dengan order tidak dikenal tidak akan pernah berhasil, sehingga
+// dipakai untuk memutuskan apakah perlu membalas 200 (diterima, diabaikan).
+var ErrPaymentNotFound = errors.New("data pembayaran tidak ditemukan")
+
 // HandlePaymentNotificationService memperbarui status pembayaran & pesanan
 // berdasarkan callback dari Tripay.
 func HandlePaymentNotificationService(orderID, transactionStatus, transactionID string, grossAmount float64) error {
@@ -20,7 +25,7 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 	var payment models.Payment
 	if err := tx.Where("order_id = ?", orderID).First(&payment).Error; err != nil {
 		tx.Rollback()
-		return errors.New("data pembayaran tidak ditemukan")
+		return ErrPaymentNotFound
 	}
 
 	if grossAmount > 0 && grossAmount != payment.Jumlah {
