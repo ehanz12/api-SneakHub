@@ -17,4 +17,7 @@ func SetupProductRoute(api fiber.Router) {
 	product.Post("/:product_id/images", middleware.AdminSellerOnly, handlers.UploadProductImageHandler)
 	product.Get("/:product_id/images", middleware.AllRoles, handlers.ListProductImagesHandler)
 	product.Delete("/:product_id/images/:image_id", middleware.AdminSellerOnly, handlers.DeleteProductImageHandler)
+	product.Get("/:product_id/price-insight", middleware.AllRoles, handlers.PriceInsightHandler)
+	product.Post("/:product_id/condition-score", middleware.AdminSellerOnly, handlers.CreateConditionScoreHandler)
+	product.Get("/:product_id/condition-score", middleware.AllRoles, handlers.GetConditionScoreHandler)
 }
