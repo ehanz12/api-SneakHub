@@ -1,0 +1,648 @@
+# SNEAKHUB API — Dokumentasi Fitur
+
+Dokumentasi lengkap API SneakHub: platform marketplace sneaker (jual-beli sepatu original & second) berbasis **Go / Fiber v2**, **GORM + MySQL**, dan **JWT** untuk autentikasi.
+
+- Base URL: `http://localhost:3000` (semua endpoint di bawah prefix `/api`)
+- Postman Collection lengkap: `SneakHub.postman_collection_v2.json`
+
+---
+
+## 1. Setup & Konfigurasi
+
+1. Salin `.env.example` menjadi `.env` dan isi konfigurasi (DB, JWT secret, payment).
+2. Jalankan server: `go run main.go`.
+3. Mode pembayaran di `.env`:
+
+| Nilai `PAYMENT_MODE` | Deskripsi |
+|---|---|
+| `mock` | Pembayaran simulasi via `/api/mock-pay` & `/api/payments/mock-settle` |
+| `tripay` | Payment gateway Tripay (default) |
+| `midtrans` | Payment gateway Midtrans |
+
+Rate limiting: maksimal **200 request/menit per IP** (respons `429`).
+
+---
+
+## 2. Autentikasi & Role
+
+Semua endpoint (kecuali yang bertanda *Public*) memerlukan header:
+
+```
+Authorization: Bearer <token>
+```
+
+Token didapat dari **Register** atau **Login** (masa berlaku 7 hari). JWT claims: `user_id`, `role`, `exp`.
+
+| Role | Hak Akses |
+|---|---|
+| `customer` | Belanja: wishlist, cart, alamat, checkout, order, review, notifikasi |
+| `seller` | Kelola toko & produk, lihat pesanan masuk, dashboard, prediksi harga |
+| `admin` | Kelola user/produk/order, moderasi, laporan, kategori |
+
+Ringkasan akses per grup route:
+
+| Grup Route | Role yang Diizinkan |
+|---|---|
+| `auth/*`, `payments/*`, `mock-pay/*` | **Public** (tanpa token) |
+| `users/me`, `discovery/*`, `home/*`, `recommendation/*`, `trending`, `best-seller/*`, `products` (GET), `category` (GET), `notifications/*`, `orders` (GET/POST/PUT/DELETE) | **Semua role** |
+| `wishlist/*`, `carts/*`, `addresses/*`, `checkout`, `orders/:id/review` | **customer** |
+| `seller/*` (dashboard, products, orders), `price/prediction` | **seller** |
+| `admin/*`, `category` (POST/PUT/DELETE) | **admin** |
+| `products` (POST/PUT/DELETE), `products/:id/images` (POST/DELETE), `products/:id/condition-score` (POST) | **seller & admin** |
+
+---
+
+## 3. Format Respons & Error
+
+### Respons sukses
+
+```json
+{
+  "success": true,
+  "message": "pesan (bahasa Indonesia)",
+  "data": { ... } | [ ... ] | null
+}
+```
+
+### Error validasi (HTTP 422)
+
+```json
+{
+  "success": false,
+  "message": "kesalahan validasi",
+  "errors": { "nama": "nama harus diisi" }
+}
+```
+
+### Error lain
+
+| Status | Bentuk |
+|---|---|
+| 400 Bad Request | `{ "success": false, "errors": "<pesan>" }` |
+| 401 Unauthorized (token salah/kadaluarsa) | `{ "error": "..." }` |
+| 403 Forbidden (role tidak sesuai) | `{ "error": "akses ditolak untuk role: ..." }` |
+| 404 Not Found | `{ "success": false, "message": "..." }` |
+| 429 Rate Limit | `{ "status": "error", "message": "..." }` |
+
+> **Catatan:** middleware auth mengembalikan bentuk `{"error": ...}`, berbeda dengan envelope standar `{success, message, data, errors}` yang dipakai handler.
+
+### Pagination (data berisi daftar)
+
+```json
+{
+  "page": 1,
+  "limit": 20,
+  "total": 100,
+  "total_pages": 5
+}
+```
+
+---
+
+## 4. Fitur per Domain
+
+### 4.1 Auth & User
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/auth/register` | Public | Registrasi customer baru |
+| POST | `/api/auth/login` | Public | Login semua role |
+| GET | `/api/users/me` | Semua | Profil sendiri |
+| PUT | `/api/users/me` | Semua | Update profil sendiri |
+
+**Register** — `201`
+
+```json
+{
+  "nama": "Budi Santoso",
+  "email": "budi@mail.com",
+  "password": "rahasia123",
+  "nomor_telepon": "08123456789"
+}
+```
+
+- `nama` wajib, `email` wajib (harus mengandung `@`), `password` wajib (min 6 karakter), `nomor_telepon` opsional (format HP Indonesia valid).
+- Respons: `data.user` (user_id, nama, email, nomor_telepon, peran, status_akun) + `data.access_token`.
+
+**Login** — `200`
+
+```json
+{ "email": "budi@mail.com", "password": "rahasia123" }
+```
+
+Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
+
+**Update Me** — `200`
+
+```json
+{
+  "nama": "Budi Santoso Baru",
+  "nomor_telepon": "081298765432",
+  "preferensi_ukuran": ["42", "43"],
+  "brand_favorit": ["Nike", "Adidas"]
+}
+```
+
+`preferensi_ukuran` dan `brand_favorit` dipakai untuk personalisasi konten home & rekomendasi (lihat 4.4).
+
+---
+
+### 4.2 Seller (Toko)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/users/me/seller-activation` | Semua | Aktivasi akun menjadi seller |
+| GET | `/api/seller/products` | seller | Produk milik toko |
+| GET | `/api/seller/orders` | seller | Pesanan masuk ke toko |
+| GET | `/api/seller/dashboard` | seller | Statistik toko |
+| GET | `/api/sellers/:seller_id/trust-score` | Semua | Skor kepercayaan seller |
+
+**Aktivasi Seller** — `201`
+
+```json
+{
+  "nama_toko": "Toko Sepatu Budi",
+  "deskripsi_toko": "Menjual sepatu sneaker original dan second berkualitas"
+}
+```
+
+- `nama_toko` wajib (min 3 karakter), `deskripsi_toko` opsional (min 3 karakter).
+- Respons: `seller_id`, `user_id`, `nama_toko`, `status_verifikasi`.
+
+**Dashboard Seller** — `200`
+
+```json
+{
+  "total_produk": 12,
+  "produk_aktif": 10,
+  "total_terjual": 45,
+  "total_pendapatan": 67500000,
+  "rating_rata_rata": 4.7,
+  "seller_trust_score": 92.5,
+  "produk_terlaris": [{ "product_id": "...", "nama_produk": "...", "total_terjual": 8 }]
+}
+```
+
+**Trust Score** — `200`
+
+`GET /api/sellers/:seller_id/trust-score` → `seller_id`, `skor_akhir`, `order_completion_rate`, `average_rating`, `cancellation_rate`, `response_rate`. Skor ini dipakai dalam perhitungan match smart-filter (4.4).
+
+---
+
+### 4.3 Admin (Moderasi & Laporan)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/admin/users` | admin | List semua user |
+| PATCH | `/api/admin/users/:user_id/status` | admin | Ubah status akun |
+| GET | `/api/admin/products` | admin | List semua produk |
+| PATCH | `/api/admin/products/:product_id/status` | admin | Ubah status publikasi produk |
+| GET | `/api/admin/orders` | admin | List semua pesanan |
+| GET | `/api/admin/reports` | admin | Laporan agregat platform |
+
+**Ubah Status User** — `200`
+
+```json
+{ "status_akun": "SUSPENDED", "alasan": "Melanggar ketentuan marketplace" }
+```
+
+Nilai `status_akun`: `ACTIVE`, `INACTIVE`, `SUSPENDED`, `BLOCKED`. `alasan` wajib.
+
+**Ubah Status Produk** — `200`
+
+```json
+{ "status_publikasi": "ACTIVE", "catatan": "Produk lolos moderasi" }
+```
+
+Nilai `status_publikasi`: `ACTIVE`, `DRAFT`, `INACTIVE`, `PENDING`. `catatan` wajib. Alur moderasi: seller membuat produk (PENDING) → admin menyetujui (ACTIVE).
+
+**Laporan Admin** — `200`
+
+`GET /api/admin/reports?period=monthly&start_date=2026-01-01&end_date=2026-01-31` → `period`, `total_users`, `total_sellers`, `total_products`, `total_orders`, `total_revenue`.
+
+---
+
+### 4.4 Discovery & AI
+
+Fitur pencarian/rekomendasi cerdas berbasis preferensi user dan machine-learning ringan.
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/discovery/smart-filter` | Semua | Filter produk cerdas berbobot |
+| GET | `/api/home/personalized` | Semua | Konten home personal |
+| GET | `/api/recommendation/cocok-untuk-kamu` | Semua | Rekomendasi personal |
+| GET | `/api/trending` | Semua | Produk sedang tren |
+| GET | `/api/best-seller/weekly` | Semua | Best seller mingguan |
+| POST | `/api/price/prediction` | seller | Prediksi harga jual |
+
+**Smart Filter** — `200`
+
+```json
+{
+  "budget_min": 500000,
+  "budget_max": 3000000,
+  "brand": ["Nike", "Adidas"],
+  "ukuran": ["42", "43"],
+  "kondisi": ["NEW", "USED"],
+  "kategori": ["Sneakers"],
+  "prioritas": { "harga": 0.5, "kondisi": 0.3, "seller_trust": 0.2 }
+}
+```
+
+- `prioritas` adalah bobot kepentingan (tidak boleh negatif; `budget_max` harus ≥ `budget_min`).
+- Respons: `items[{product_id, nama_produk, harga, match_score, alasan[]}]` — `match_score` (0–100) dihitung dari bobot, `alasan[]` menjelaskan kenapa produk direkomendasikan.
+
+**Home Personalized** — `200`
+
+Respons: `sections[{type, title, products[{product_id, nama_produk, harga, image_url}]}]` — section seperti "Rekomendasi untuk kamu", "Brand favoritmu", "Kategori yang kamu sukai", dibangun dari `preferensi_ukuran` & `brand_favorit` user.
+
+**Rekomendasi Cocok Untuk Kamu** — `200`
+
+`GET /api/recommendation/cocok-untuk-kamu?limit=10` → `items[{product_id, nama_produk, harga, score, reason}]`.
+
+**Trending** — `200`
+
+`GET /api/trending?period=weekly&limit=10` → `period`, `items[{product_id, nama_produk, trend_score, views, wishlist_count}]` — dihitung dari jumlah views dan wishlist dalam periode.
+
+**Best Seller Mingguan** — `200`
+
+`GET /api/best-seller/weekly?limit=10` → `period_start`, `period_end`, `items[{rank, product_id, nama_produk, total_terjual}]`.
+
+**Prediksi Harga (Seller)** — `200`
+
+```json
+{
+  "brand_id": "uuid-brand",
+  "category_id": "uuid-kategori",
+  "kondisi": "USED",
+  "condition_score": 85,
+  "ukuran": "42",
+  "model": "Air Jordan 1 High",
+  "tahun_rilis": 2021
+}
+```
+
+- `brand_id` wajib; `kondisi`: `NEW`/`USED`/`REFURBISHED`; `condition_score` 0–100; `tahun_rilis` ≥ 1900.
+- Respons: `estimated_market_price_min`, `estimated_market_price_max`, `recommended_price`, `confidence` — membantu seller menentukan harga jual.
+
+---
+
+### 4.5 Category
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/category` | Semua | List kategori |
+| POST | `/api/category` | admin | Buat kategori |
+| PUT | `/api/category/:category_id` | admin | Update kategori |
+| DELETE | `/api/category/:category_id` | admin | Hapus kategori |
+
+Body (POST/PUT): `{ "nama_kategori": "Sneakers" }` (min 3 karakter).
+
+> **Catatan bug di kode:** respons list kategori mengembalikan field ID dengan nama `cateogry_id` (typo). Dokumentasi sesuai perilaku aktual.
+
+---
+
+### 4.6 Wishlist & Alert
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/wishlist` | customer | List wishlist |
+| POST | `/api/wishlist` | customer | Tambah ke wishlist |
+| DELETE | `/api/wishlist/:product_id` | customer | Hapus dari wishlist |
+| POST | `/api/wishlist/:product_id/price-alert` | customer | Aktifkan alert harga |
+| DELETE | `/api/wishlist/:product_id/price-alert` | customer | Nonaktifkan alert harga |
+| POST | `/api/wishlist/:product_id/restock-alert` | customer | Aktifkan alert stok |
+| DELETE | `/api/wishlist/:product_id/restock-alert` | customer | Nonaktifkan alert stok |
+
+**Tambah Wishlist** — `201`: `{ "product_id": "uuid" }`
+
+**Price Alert** — `200`
+
+```json
+{ "target_price": 750000 }
+```
+
+Customer akan dinotifikasi ketika harga produk turun di bawah `target_price`.
+
+**Restock Alert** — `200` (tanpa body) — notifikasi saat stok tersedia kembali.
+
+Respons list wishlist:
+
+```json
+[
+  {
+    "wishlist_id": "uuid",
+    "product_id": "uuid",
+    "nama_produk": "...",
+    "harga": 1500000,
+    "status_stok_terakhir": "AVAILABLE",
+    "price_alert": { "enabled": true, "target_price": 750000 },
+    "restock_alert": { "enabled": true }
+  }
+]
+```
+
+---
+
+### 4.7 Notifications
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/notifications` | Semua | List notifikasi |
+| PATCH | `/api/notifications/:notification_id/read` | Semua | Tandai sudah dibaca |
+
+Notifikasi dibuat otomatis oleh sistem (mis. harga turun, stok tersedia, pesanan diproses, dsb.).
+
+**List Notifikasi** — `200`
+
+`GET /api/notifications?page=1&limit=20&type=PRICE_ALERT` → `items[{notification_id, jenis_notifikasi, isi_notifikasi, status_baca, created_at}]` + `unread_count` (jumlah belum dibaca).
+
+**Tandai Dibaca** — `200` → `{notification_id, status_baca}`.
+
+---
+
+### 4.8 Product
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/products` | Semua | List & pencarian produk |
+| GET | `/api/products/:product_id` | Semua | Detail produk |
+| POST | `/api/products` | seller/admin | Buat produk |
+| PUT | `/api/products/:product_id` | seller/admin | Update produk |
+| DELETE | `/api/products/:product_id` | seller/admin | Hapus produk |
+| POST | `/api/products/:product_id/images` | seller/admin | Upload gambar |
+| GET | `/api/products/:product_id/images` | Semua | List gambar |
+| DELETE | `/api/products/:product_id/images/:image_id` | seller/admin | Hapus gambar |
+| POST | `/api/products/search-by-image` | Semua | Cari produk via gambar (AI) |
+| GET | `/api/products/:product_id/price-insight` | Semua | Insight harga vs pasar |
+| POST | `/api/products/:product_id/condition-score` | seller/admin | Nilai skor kondisi |
+| GET | `/api/products/:product_id/condition-score` | Semua | Lihat skor kondisi |
+
+**List Produk** — `200`
+
+Query param: `page` (1), `limit` (20), `search`, `brand_id`, `category_id`, `kondisi`, `min_price`, `max_price`, `size`, `sort` (mis. `harga_asc`).
+
+Respons: `items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, image_url, seller{seller_id, nama_toko, seller_trust_score}}]` + pagination.
+
+**Buat Produk** — `201`
+
+```json
+{
+  "nama_produk": "Air Jordan 1 High OG",
+  "brand_id": "uuid-brand",
+  "category_id": "uuid-kategori",
+  "kondisi": "USED",
+  "deskripsi": "Sepatu original kondisi 9/10, sudah pernah dipakai 3 kali",
+  "harga": 1500000,
+  "stok": 5,
+  "condition_score": 85,
+  "status_publikasi": "ACTIVE",
+  "ukuran_tersedia": ["42", "43"]
+}
+```
+
+- `nama_produk`, `brand_id`, `category_id`, `ukuran_tersedia` (ukuran sepatu valid, min 1) wajib; `harga` > 0; `stok` ≥ 0; `deskripsi` opsional (min 10 karakter); `condition_score` opsional 0–100.
+- Respons: `product_id`, `status_publikasi`. Seller hanya bisa mengelola produk miliknya sendiri.
+
+**Upload Gambar** — `201` (multipart/form-data): field `gambar` (file, wajib, max 5 MB) + `urutan_tampil` (teks, opsional ≥ 0). Respons: `image_id`, `product_id`, `url`, `urutan_tampil`, `embedding`, `created_at` (embedding dipakai untuk search-by-image).
+
+**Search by Image** — `200` (multipart/form-data): field `gambar` (wajib) + `limit` (opsional, default 10, max 50). Respons: array `[{product_id, nama_produk, harga, image_url, skor_kemiripan}]` (diurutkan dari paling mirip).
+
+**Price Insight** — `200`
+
+`GET /api/products/:product_id/price-insight` → `current_price`, `market_price_min`, `market_price_max`, `market_average`, `price_difference_percent`, `anomaly` (bool), `anomaly_type`, `message` — mendeteksi harga yang menyimpang dari pasar (murah/jauh di atas pasar).
+
+**Condition Score** — `200`
+
+```json
+{
+  "upper": 90, "outsole": 80, "midsole": 85,
+  "insole": 75, "accessories": 90, "box": 70,
+  "dinilai_oleh": "SELLER"
+}
+```
+
+- Semua komponen 0–100; `dinilai_oleh`: `SELLER`/`ADMIN`.
+- Respons: `product_id`, `skor_akhir` (rata-rata tertimbang), komponen detail, `dinilai_oleh`. Skor ini dipakai sebagai `condition_score` produk.
+
+---
+
+### 4.9 Cart (Keranjang)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/carts` | customer | Isi keranjang |
+| POST | `/api/carts/items` | customer | Tambah item |
+| PUT | `/api/carts/items/:cart_item_id` | customer | Ubah jumlah |
+| DELETE | `/api/carts/items/:cart_item_id` | customer | Hapus item |
+
+**Tambah Item** — `200`
+
+```json
+{
+  "items": [
+    { "product_id": "uuid", "jumlah": 1 },
+    { "product_id": "uuid", "jumlah": 2 }
+  ]
+}
+```
+
+Minimal 1 item; `jumlah` ≥ 1. Respons: `items[{cart_item_id, product_id, jumlah, subtotal}]` + `total`.
+
+**Get Cart** — `200` → `cart_id`, `items[{cart_item_id, product_id, jumlah, subtotal, nama_produk, harga, image_url}]`, `total_item`, `total`.
+
+---
+
+### 4.10 Address (Alamat Pengiriman)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/addresses` | customer | List alamat |
+| GET | `/api/addresses/:address_id` | customer | Detail alamat |
+| POST | `/api/addresses` | customer | Buat alamat |
+| PUT | `/api/addresses/:address_id` | customer | Update alamat |
+| DELETE | `/api/addresses/:address_id` | customer | Hapus alamat |
+
+**Buat Alamat** — `201`
+
+```json
+{
+  "nama_penerima": "Budi Santoso",
+  "nomor_telepon": "08123456789",
+  "alamat": "Jl. Merdeka No. 45, RT 02/RW 05",
+  "kota": "Jakarta Selatan",
+  "provinsi": "DKI Jakarta",
+  "kode_pos": "12560",
+  "is_default": true
+}
+```
+
+`nama_penerima`, `alamat`, `kota`, `provinsi`, `kode_pos` wajib. `is_default=true` menjadikan alamat sebagai default.
+
+**Update Alamat** — `200`: kirim subset field (minimal 1 field wajib diisi), semua bersifat opsional per-field.
+
+---
+
+### 4.11 Checkout & Payment
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| POST | `/api/checkout` | customer | Checkout keranjang |
+| POST | `/api/payments/notification` | Public | Callback Tripay |
+| GET | `/api/mock-pay/:order_id` | Public* | Halaman bayar simulasi |
+| POST | `/api/payments/mock-settle` | Public* | Settle pembayaran simulasi |
+| POST | `/api/payments/midtrans/notification` | Public** | Callback Midtrans |
+
+*\*hanya aktif saat `PAYMENT_MODE=mock`; **hanya aktif saat `PAYMENT_MODE=midtrans`.*
+
+**Checkout** — `201`
+
+```json
+{
+  "address_id": "uuid-alamat",
+  "metode_pembayaran": "EWALLET"
+}
+```
+
+- `address_id` dan `metode_pembayaran` wajib.
+- Respons berupa **array** (satu entry per seller karena item dari beberapa toko dipisah menjadi beberapa order): `[{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}]`.
+- `payment_url` dari gateway (Tripay `checkout_url` / Midtrans `redirect_url`) untuk membayar.
+
+**Callback Tripay** — `200` (tanpa auth)
+
+Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 raw body>`.
+
+```json
+{
+  "reference": "T1234567890",
+  "merchant_ref": "INV-20260214-ABCDEF",
+  "total_amount": 1650000,
+  "status": "PAID"
+}
+```
+
+`status`: `PAID` (order → selesai & stok berkurang), `EXPIRED`, `FAILED`, `REFUND`.
+
+**Mock Pay** — `200` (HTML): `GET /api/mock-pay/:order_id?amount=1650000&name=Budi` — halaman pembayaran simulasi untuk mengetes alur tanpa gateway.
+
+**Mock Settle** — `200`
+
+```json
+{ "order_id": "uuid", "status": "PAID" }
+```
+
+`status` opsional (default `PAID`): `PAID`/`EXPIRED`/`FAILED`/`REFUND`.
+
+**Callback Midtrans** — `200` (tanpa auth)
+
+```json
+{
+  "transaction_status": "settlement",
+  "fraud_status": "accept",
+  "order_id": "uuid",
+  "status_code": "200",
+  "gross_amount": "1650000.00",
+  "signature_key": "<SHA512 order_id+status_code+gross_amount+SERVER_KEY>",
+  "transaction_id": "txn-123456",
+  "payment_type": "bank_transfer"
+}
+```
+
+`transaction_status`: `settlement`/`capture` (sukses), `pending`, `deny`, `expire`, `cancel`. Signature diverifikasi dengan `MIDTRANS_SERVER_KEY`.
+
+---
+
+### 4.12 Order & Review
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/api/orders` | Semua | List pesanan (role-aware) |
+| GET | `/api/orders/:order_id` | Semua | Detail pesanan |
+| POST | `/api/orders` | Semua | Buat pesanan manual |
+| PUT | `/api/orders/:order_id` | Semua | Update status pesanan |
+| DELETE | `/api/orders/:order_id` | Semua | Hapus pesanan |
+| POST | `/api/orders/:order_id/review` | customer | Review produk |
+
+**List Pesanan** — `200`: `?page=1&limit=10&status=pending`. Role-aware: customer → pesanan miliknya; seller → pesanan tokonya; admin → semua.
+
+**Detail Pesanan** — `200`
+
+```json
+{
+  "order_id": "uuid",
+  "customer_id": "uuid",
+  "seller_id": "uuid",
+  "status_order": "pending",
+  "alamat_pengiriman": { "nama_penerima": "...", "nomor_telepon": "...", "alamat": "...", "kota": "...", "provinsi": "...", "kode_pos": "..." },
+  "metode_pembayaran": "EWALLET",
+  "items": [{ "order_item_id": "uuid", "product_id": "uuid", "nama_produk": "...", "jumlah": 1, "harga_saat_transaksi": 1500000 }],
+  "subtotal": 1500000,
+  "biaya_pengiriman": 150000,
+  "total_pembayaran": 1650000,
+  "created_at": "..."
+}
+```
+
+**Buat Pesanan Manual** — `201`
+
+```json
+{
+  "seller_id": "uuid",
+  "customer_id": "uuid",
+  "metode_pembayaran": "BANK_TRANSFER",
+  "alamat_pengiriman": {
+    "nama_penerima": "Budi Santoso", "nomor_telepon": "08123456789",
+    "alamat": "Jl. Merdeka No. 45", "kota": "Jakarta Selatan",
+    "provinsi": "DKI Jakarta", "kode_pos": "12560"
+  },
+  "items": [{ "product_id": "uuid", "jumlah": 1 }]
+}
+```
+
+`seller_id`, `metode_pembayaran`, `alamat_pengiriman` (nama_penerima, alamat, kota, provinsi, kode_pos), dan minimal 1 item wajib. Tidak boleh ada `product_id` duplikat; `jumlah` ≥ 1.
+
+**Update Status** — `200`
+
+```json
+{ "status_order": "dikirim" }
+```
+
+Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`.
+
+**Review** — `201`
+
+```json
+{
+  "product_id": "uuid",
+  "rating": 4.5,
+  "komentar": "Sepatu sesuai foto, pengiriman cepat, recommended!"
+}
+```
+
+`product_id` wajib, `rating` 1–5, `komentar` opsional. Respons: `review_id`, `order_id`, `product_id`, `rating`, `komentar`.
+
+---
+
+## 5. Alur Transaksi End-to-End (Mock Payment)
+
+1. **Register/Login** → simpan token.
+2. **Seller activation** → dapat `seller_id`.
+3. **Buat kategori** (admin) → `category_id`; **buat produk** → `product_id`; **upload gambar**.
+4. **Tambah ke cart** → `cart_item_id`.
+5. **Buat alamat** → `address_id`.
+6. **Checkout** (`metode_pembayaran: EWALLET`) → dapat `order_id` + `payment_url`.
+7. **Mock settle** `{ "order_id": "...", "status": "PAID" }` → order lunas.
+8. **Update status order** → `diproses` → `dikirim` → `selesai`.
+9. **Review** produk.
+10. Cek **notifikasi** & **dashboard seller** untuk melihat dampak transaksi.
+
+---
+
+## 6. Catatan Penting
+
+- Semua field respons berbahasa Indonesia dan snake_case.
+- Middleware auth error memakai bentuk `{"error": "..."}` (bukan envelope standar).
+- `GET /api/category` mengembalikan ID dengan typo `cateogry_id` (sesuai kode saat ini).
+- Base path aktual adalah `/api` (tanpa `/v1`), meskipun anotasi Swagger di `main.go` menyebut `/api/v1`.
+- File upload (gambar produk) maksimal 5 MB.
+- Rate limit 200 request/menit per IP.

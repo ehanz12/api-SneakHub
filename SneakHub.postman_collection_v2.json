@@ -1,0 +1,2252 @@
+{
+  "info": {
+    "name": "SneakHub API v2 (Lengkap)",
+    "description": "Collection API SneakHub (Go Fiber) - Versi LENGKAP mencakup seluruh endpoint: Auth/User, Seller, Admin, Discovery & AI, Category, Wishlist & Alerts, Notifications, Product, Cart, Address, Checkout & Payment, Order & Review.\n\nSetup:\n1. Jalankan server (go run main.go)\n2. Ganti variable `base_url` sesuai kebutuhan (default http://localhost:3000)\n3. Register/Login -> token otomatis tersimpan di variable `token`\n4. Isi variable ID (product_id, seller_id, dll.) dari hasil respons setiap request\n\nMode payment di .env: mock | tripay | midtrans\n\nFormat respons standar:\n{\n  \"success\": true|false,\n  \"message\": \"...\",\n  \"data\": { ... } | null,\n  \"errors\": { field: pesan } (hanya saat validasi gagal)\n}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "brand_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cart_item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "image_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notification_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "wishlist_product_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth & User",
+      "item": [
+        {
+          "name": "Register (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Budi Santoso\",\n  \"email\": \"budi@mail.com\",\n  \"password\": \"rahasia123\",\n  \"nomor_telepon\": \"08123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registrasi customer baru (tanpa token). Token disimpan otomatis ke variable `token`.\nBody: nama (wajib), email (wajib, harus @), password (wajib, min 6), nomor_telepon (opsional).\nRespons: 201 -> data.user + data.access_token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.access_token) {",
+                  "  pm.collectionVariables.set(\"token\", json.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi@mail.com\",\n  \"password\": \"rahasia123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login (semua role: customer/seller/admin). Token disimpan otomatis.\nRespons: 200 -> data.access_token + data.user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.access_token) {",
+                  "  pm.collectionVariables.set(\"token\", json.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Me (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Lihat profil sendiri (semua role).\nRespons: 200 -> user_id, nama, email, nomor_telepon, peran, status_akun, preferensi_ukuran[], brand_favorit[]"
+          }
+        },
+        {
+          "name": "Update Me (Semua Role)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Budi Santoso Baru\",\n  \"nomor_telepon\": \"081298765432\",\n  \"preferensi_ukuran\": [\"42\", \"43\"],\n  \"brand_favorit\": [\"Nike\", \"Adidas\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Update profil sendiri (semua role).\nBody: nama, nomor_telepon (opsional), preferensi_ukuran[] (opsional), brand_favorit[] (opsional).\nRespons: 200 -> user_id, nama, nomor_telepon, preferensi_ukuran[], brand_favorit[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seller",
+      "item": [
+        {
+          "name": "Aktivasi Seller (Semua Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_toko\": \"Toko Sepatu Budi\",\n  \"deskripsi_toko\": \"Menjual sepatu sneaker original dan second berkualitas\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/me/seller-activation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "seller-activation"
+              ]
+            },
+            "description": "Aktivasi akun menjadi seller. Body: nama_toko (wajib, min 3), deskripsi_toko (opsional, min 3).\nRespons: 201 -> seller_id, user_id, nama_toko, status_verifikasi\nCatatan: seller_id dari respons otomatis tersimpan di variable `seller_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.seller_id) {",
+                  "  pm.collectionVariables.set(\"seller_id\", json.data.seller_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Produk Seller",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/seller/products?page=1&limit=20&status=ACTIVE",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            },
+            "description": "List produk milik seller (role seller).\nQuery: page (default 1), limit (default 20), status (opsional: ACTIVE/DRAFT/INACTIVE/PENDING).\nRespons: 200 -> items[{product_id, nama_produk, harga, stok, status_publikasi, total_terjual}] + pagination"
+          }
+        },
+        {
+          "name": "List Pesanan Seller",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/seller/orders?page=1&limit=20&status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "List pesanan yang masuk ke toko seller (role seller).\nQuery: page, limit, status (opsional: pending/diproses/dikirim/selesai/dibatalkan).\nRespons: 200 -> items[{order_id, customer{user_id, nama}, status_order, total_pembayaran, created_at}] + pagination"
+          }
+        },
+        {
+          "name": "Dashboard Seller",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/seller/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "seller",
+                "dashboard"
+              ]
+            },
+            "description": "Statistik dashboard toko (role seller).\nRespons: 200 -> total_produk, produk_aktif, total_terjual, total_pendapatan, rating_rata_rata, seller_trust_score, produk_terlaris[]"
+          }
+        },
+        {
+          "name": "Trust Score Seller (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sellers/{{seller_id}}/trust-score",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "{{seller_id}}",
+                "trust-score"
+              ]
+            },
+            "description": "Lihat skor kepercayaan seller (semua role).\nPath: seller_id.\nRespons: 200 -> seller_id, skor_akhir, order_completion_rate, average_rating, cancellation_rate, response_rate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Semua User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users?page=1&limit=20&status=ACTIVE&role=customer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "role",
+                  "value": "customer"
+                }
+              ]
+            },
+            "description": "List semua user (role admin).\nQuery: page, limit (default 20), status (ACTIVE/INACTIVE/SUSPENDED/BLOCKED), role (customer/seller/admin).\nRespons: 200 -> items[{user_id, nama, email, peran, status_akun}] + pagination"
+          }
+        },
+        {
+          "name": "Ubah Status User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_akun\": \"SUSPENDED\",\n  \"alasan\": \"Melanggar ketentuan marketplace\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/users/{{customer_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{customer_id}}",
+                "status"
+              ]
+            },
+            "description": "Ubah status akun user (role admin).\nPath: user_id.\nBody: status_akun (wajib: ACTIVE/INACTIVE/SUSPENDED/BLOCKED), alasan (wajib).\nRespons: 200 -> user_id, status_akun"
+          }
+        },
+        {
+          "name": "List Semua Produk",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/products?page=1&limit=20&status=PENDING",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            },
+            "description": "List semua produk di platform (role admin).\nQuery: page, limit, status (ACTIVE/DRAFT/INACTIVE/PENDING).\nRespons: 200 -> items[{product_id, nama_produk, seller_id, harga, status_publikasi}] + pagination"
+          }
+        },
+        {
+          "name": "Ubah Status Produk",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_publikasi\": \"ACTIVE\",\n  \"catatan\": \"Produk lolos moderasi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/products/{{product_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "products",
+                "{{product_id}}",
+                "status"
+              ]
+            },
+            "description": "Ubah status publikasi produk (role admin).\nPath: product_id.\nBody: status_publikasi (wajib: ACTIVE/DRAFT/INACTIVE/PENDING), catatan (wajib).\nRespons: 200 -> product_id, status_publikasi"
+          }
+        },
+        {
+          "name": "List Semua Pesanan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/orders?page=1&limit=20&status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "List semua pesanan di platform (role admin).\nQuery: page, limit, status.\nRespons: 200 -> items[{order_id, customer_id, seller_id, status_order, total_pembayaran, created_at}] + pagination"
+          }
+        },
+        {
+          "name": "Laporan Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/reports?period=monthly&start_date=2026-01-01&end_date=2026-01-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-01-31"
+                }
+              ]
+            },
+            "description": "Laporan agregat platform (role admin).\nQuery: period (opsional), start_date (opsional), end_date (opsional).\nRespons: 200 -> period, total_users, total_sellers, total_products, total_orders, total_revenue"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Discovery & AI",
+      "item": [
+        {
+          "name": "Smart Filter (Semua Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"budget_min\": 500000,\n  \"budget_max\": 3000000,\n  \"brand\": [\"Nike\", \"Adidas\"],\n  \"ukuran\": [\"42\", \"43\"],\n  \"kondisi\": [\"NEW\", \"USED\"],\n  \"kategori\": [\"Sneakers\"],\n  \"prioritas\": {\n    \"harga\": 0.5,\n    \"kondisi\": 0.3,\n    \"seller_trust\": 0.2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/discovery/smart-filter",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "discovery",
+                "smart-filter"
+              ]
+            },
+            "description": "Filter produk cerdas dengan prioritas bobot (semua role).\nBody: budget_min/max, brand[], ukuran[], kondisi[], kategori[], prioritas{harga, kondisi, seller_trust}.\nRespons: 200 -> items[{product_id, nama_produk, harga, match_score, alasan[]}]"
+          }
+        },
+        {
+          "name": "Home Personalized (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/home/personalized",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "home",
+                "personalized"
+              ]
+            },
+            "description": "Konten home yang dipersonalisasi berdasarkan preferensi user (semua role).\nRespons: 200 -> sections[{type, title, products[{product_id, nama_produk, harga, image_url}]}]"
+          }
+        },
+        {
+          "name": "Rekomendasi Cocok Untuk Kamu",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/recommendation/cocok-untuk-kamu?limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recommendation",
+                "cocok-untuk-kamu"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Rekomendasi personal 'cocok untuk kamu' (semua role).\nQuery: limit (default 10).\nRespons: 200 -> items[{product_id, nama_produk, harga, score, reason}]"
+          }
+        },
+        {
+          "name": "Trending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/trending?period=weekly&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "trending"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "weekly"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Produk sedang tren berdasarkan views & wishlist (semua role).\nQuery: period (opsional), limit (default 10).\nRespons: 200 -> period, items[{product_id, nama_produk, trend_score, views, wishlist_count}]"
+          }
+        },
+        {
+          "name": "Best Seller Mingguan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/best-seller/weekly?limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "best-seller",
+                "weekly"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Peringkat produk terlaris mingguan (semua role).\nQuery: limit (default 10).\nRespons: 200 -> period_start, period_end, items[{rank, product_id, nama_produk, total_terjual}]"
+          }
+        },
+        {
+          "name": "Prediksi Harga (Seller Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand_id\": \"{{brand_id}}\",\n  \"category_id\": \"{{category_id}}\",\n  \"kondisi\": \"USED\",\n  \"condition_score\": 85,\n  \"ukuran\": \"42\",\n  \"model\": \"Air Jordan 1 High\",\n  \"tahun_rilis\": 2021\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/price/prediction",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "price",
+                "prediction"
+              ]
+            },
+            "description": "Prediksi harga pasar untuk seller (role seller).\nBody: brand_id (wajib), category_id, kondisi (NEW/USED/REFURBISHED), condition_score (0-100), ukuran, model, tahun_rilis (min 1900).\nRespons: 200 -> estimated_market_price_min, estimated_market_price_max, recommended_price, confidence"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "List Kategori (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category"
+              ]
+            },
+            "description": "List semua kategori (semua role).\nRespons: 200 -> data berupa ARRAY [{cateogry_id (typo di kode), nama_kategori, created_at, updated_at}]"
+          }
+        },
+        {
+          "name": "Buat Kategori (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_kategori\": \"Sneakers\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/category",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category"
+              ]
+            },
+            "description": "Buat kategori baru (role admin).\nBody: nama_kategori (wajib, min 3).\nRespons: 201 -> data kategori\nCatatan: category_id dari respons otomatis tersimpan di variable `category_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const id = json.data && (json.data.category_id || json.data.cateogry_id);",
+                  "if (id) {",
+                  "  pm.collectionVariables.set(\"category_id\", id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Kategori (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_kategori\": \"Sneakers Original\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/category/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category",
+                "{{category_id}}"
+              ]
+            },
+            "description": "Update kategori (role admin).\nPath: category_id. Body: nama_kategori.\nRespons: 200 -> data kategori"
+          }
+        },
+        {
+          "name": "Hapus Kategori (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category",
+                "{{category_id}}"
+              ]
+            },
+            "description": "Hapus kategori (role admin).\nPath: category_id.\nRespons: 200 -> data null"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wishlist & Alerts",
+      "item": [
+        {
+          "name": "List Wishlist (Customer Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/wishlist",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist"
+              ]
+            },
+            "description": "List wishlist customer (role customer).\nRespons: 200 -> [{wishlist_id, product_id, nama_produk, harga, status_stok_terakhir, price_alert{enabled, target_price}, restock_alert{enabled}}]"
+          }
+        },
+        {
+          "name": "Tambah ke Wishlist (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{product_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/wishlist",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist"
+              ]
+            },
+            "description": "Tambah produk ke wishlist (role customer).\nBody: product_id (wajib).\nRespons: 201 -> wishlist_id, product_id"
+          }
+        },
+        {
+          "name": "Hapus dari Wishlist (Customer Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/wishlist/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Hapus produk dari wishlist (role customer).\nPath: product_id.\nRespons: 200 -> data null"
+          }
+        },
+        {
+          "name": "Aktifkan Price Alert (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_price\": 750000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/wishlist/{{product_id}}/price-alert",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist",
+                "{{product_id}}",
+                "price-alert"
+              ]
+            },
+            "description": "Aktifkan notifikasi saat harga turun di bawah target (role customer).\nPath: product_id. Body: target_price (wajib, > 0).\nRespons: 200 -> product_id, enabled, target_price"
+          }
+        },
+        {
+          "name": "Nonaktifkan Price Alert (Customer Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/wishlist/{{product_id}}/price-alert",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist",
+                "{{product_id}}",
+                "price-alert"
+              ]
+            },
+            "description": "Nonaktifkan notifikasi harga (role customer).\nPath: product_id.\nRespons: 200 -> data null"
+          }
+        },
+        {
+          "name": "Aktifkan Restock Alert (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/wishlist/{{product_id}}/restock-alert",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist",
+                "{{product_id}}",
+                "restock-alert"
+              ]
+            },
+            "description": "Aktifkan notifikasi saat stok tersedia kembali (role customer). Tanpa body.\nPath: product_id.\nRespons: 200 -> product_id, enabled"
+          }
+        },
+        {
+          "name": "Nonaktifkan Restock Alert (Customer Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/wishlist/{{product_id}}/restock-alert",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wishlist",
+                "{{product_id}}",
+                "restock-alert"
+              ]
+            },
+            "description": "Nonaktifkan notifikasi stok (role customer).\nPath: product_id.\nRespons: 200 -> data null"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifikasi (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?page=1&limit=20&type=PRICE_ALERT",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "type",
+                  "value": "PRICE_ALERT"
+                }
+              ]
+            },
+            "description": "List notifikasi user (semua role).\nQuery: page, limit (default 20), type (opsional).\nRespons: 200 -> items[{notification_id, jenis_notifikasi, isi_notifikasi, status_baca, created_at}] + unread_count"
+          }
+        },
+        {
+          "name": "Tandai Notifikasi Dibaca (Semua Role)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/{{notification_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{{notification_id}}",
+                "read"
+              ]
+            },
+            "description": "Tandai satu notifikasi sebagai sudah dibaca (semua role).\nPath: notification_id.\nRespons: 200 -> notification_id, status_baca"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "item": [
+        {
+          "name": "List Produk (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products?page=1&limit=20&search=air%20jordan&brand_id=&category_id=&kondisi=USED&min_price=100000&max_price=5000000&size=42&sort=harga_asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "air jordan"
+                },
+                {
+                  "key": "brand_id",
+                  "value": ""
+                },
+                {
+                  "key": "category_id",
+                  "value": ""
+                },
+                {
+                  "key": "kondisi",
+                  "value": "USED"
+                },
+                {
+                  "key": "min_price",
+                  "value": "100000"
+                },
+                {
+                  "key": "max_price",
+                  "value": "5000000"
+                },
+                {
+                  "key": "size",
+                  "value": "42"
+                },
+                {
+                  "key": "sort",
+                  "value": "harga_asc"
+                }
+              ]
+            },
+            "description": "List & pencarian produk (semua role).\nQuery: page, limit (default 20), search, brand_id, category_id, kondisi, min_price, max_price, size, sort.\nRespons: 200 -> items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, image_url, seller{seller_id, nama_toko, seller_trust_score}}] + pagination"
+          }
+        },
+        {
+          "name": "Detail Produk (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Detail produk lengkap (semua role).\nPath: product_id.\nRespons: 200 -> product_id, seller_id, nama_produk, brand_id, category_id, kondisi, deskripsi, harga, stok, ukuran_tersedia[], condition_score, status_publikasi, images[{image_id, url, urutan_tampil}]"
+          }
+        },
+        {
+          "name": "Buat Produk (Seller/Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_produk\": \"Air Jordan 1 High OG\",\n  \"brand_id\": \"{{brand_id}}\",\n  \"category_id\": \"{{category_id}}\",\n  \"kondisi\": \"USED\",\n  \"deskripsi\": \"Sepatu original kondisi 9/10, sudah pernah dipakai 3 kali\",\n  \"harga\": 1500000,\n  \"stok\": 5,\n  \"condition_score\": 85,\n  \"status_publikasi\": \"ACTIVE\",\n  \"ukuran_tersedia\": [\"42\", \"43\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "Buat produk baru (role seller/admin).\nBody: nama_produk (wajib), brand_id (wajib), category_id (wajib), kondisi, deskripsi (opsional, min 10), harga (> 0), stok (>= 0), condition_score (opsional 0-100), status_publikasi, ukuran_tersedia[] (wajib, ukuran sepatu valid).\nRespons: 201 -> product_id, status_publikasi\nCatatan: product_id otomatis tersimpan di variable `product_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.product_id) {",
+                  "  pm.collectionVariables.set(\"product_id\", json.data.product_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Produk (Seller/Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_produk\": \"Air Jordan 1 High OG (Updated)\",\n  \"brand_id\": \"{{brand_id}}\",\n  \"category_id\": \"{{category_id}}\",\n  \"kondisi\": \"USED\",\n  \"deskripsi\": \"Sepatu original kondisi 9/10, sudah pernah dipakai 3 kali\",\n  \"harga\": 1400000,\n  \"stok\": 4,\n  \"condition_score\": 85,\n  \"status_publikasi\": \"ACTIVE\",\n  \"ukuran_tersedia\": [\"42\", \"43\", \"44\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Update produk (role seller/admin, hanya produk milik sendiri untuk seller).\nPath: product_id. Body: sama seperti Create Product.\nRespons: 201 -> product_id, harga, updated_at"
+          }
+        },
+        {
+          "name": "Hapus Produk (Seller/Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Hapus produk (role seller/admin, hanya produk milik sendiri untuk seller).\nPath: product_id.\nRespons: 200 -> data null"
+          }
+        },
+        {
+          "name": "Upload Gambar Produk (Seller/Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "urutan_tampil",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/images",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "images"
+              ]
+            },
+            "description": "Upload gambar produk - multipart/form-data (role seller/admin).\nField: gambar (file, wajib, max 5 MB), urutan_tampil (teks, opsional, >= 0).\nRespons: 201 -> image_id, product_id, url, urutan_tampil, embedding, created_at\nCatatan: image_id otomatis tersimpan di variable `image_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.image_id) {",
+                  "  pm.collectionVariables.set(\"image_id\", json.data.image_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Gambar Produk (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/images",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "images"
+              ]
+            },
+            "description": "List gambar produk (semua role).\nPath: product_id.\nRespons: 200 -> ARRAY [{image_id, url, urutan_tampil, ...}]"
+          }
+        },
+        {
+          "name": "Hapus Gambar Produk (Seller/Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/images/{{image_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "images",
+                "{{image_id}}"
+              ]
+            },
+            "description": "Hapus gambar produk (role seller/admin).\nPath: product_id, image_id.\nRespons: 200 -> data null"
+          }
+        },
+        {
+          "name": "Cari Produk Berdasarkan Gambar (Semua Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "gambar",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/search-by-image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "search-by-image"
+              ]
+            },
+            "description": "Cari produk mirip berdasarkan gambar (AI, embedding) - multipart/form-data (semua role).\nField: gambar (file, wajib), limit (teks, opsional, default 10, max 50).\nRespons: 200 -> ARRAY [{product_id, nama_produk, harga, image_url, skor_kemiripan}]"
+          }
+        },
+        {
+          "name": "Price Insight (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/price-insight",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "price-insight"
+              ]
+            },
+            "description": "Insight harga produk vs harga pasar (semua role).\nPath: product_id.\nRespons: 200 -> current_price, market_price_min, market_price_max, market_average, price_difference_percent, anomaly, anomaly_type, message"
+          }
+        },
+        {
+          "name": "Buat Condition Score (Seller/Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"upper\": 90,\n  \"outsole\": 80,\n  \"midsole\": 85,\n  \"insole\": 75,\n  \"accessories\": 90,\n  \"box\": 70,\n  \"dinilai_oleh\": \"SELLER\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/condition-score",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "condition-score"
+              ]
+            },
+            "description": "Nilai skor kondisi sepatu (role seller/admin).\nPath: product_id.\nBody: upper, outsole, midsole, insole, accessories, box (semua 0-100), dinilai_oleh (SELLER/ADMIN).\nRespons: 200 -> product_id, skor_akhir, upper, outsole, midsole, insole, accessories, box, dinilai_oleh"
+          }
+        },
+        {
+          "name": "Detail Condition Score (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/condition-score",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{product_id}}",
+                "condition-score"
+              ]
+            },
+            "description": "Lihat skor kondisi produk (semua role).\nPath: product_id.\nRespons: 200 -> product_id, skor_akhir, detail{upper, outsole, midsole, insole, accessories, box}, dinilai_oleh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart (Customer Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/carts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "carts"
+              ]
+            },
+            "description": "Lihat keranjang (role customer).\nRespons: 200 -> cart_id, items[{cart_item_id, product_id, jumlah, subtotal, nama_produk, harga, image_url}], total_item, total"
+          }
+        },
+        {
+          "name": "Tambah Item ke Cart (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"jumlah\": 1\n    },\n    {\n      \"product_id\": \"9f8e7d6c-5b4a-3210-fedc-ba9876543210\",\n      \"jumlah\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/carts/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items"
+              ]
+            },
+            "description": "Tambah satu/lebih item ke keranjang (role customer).\nBody: items[{product_id (wajib), jumlah (min 1)}] - minimal 1 item.\nRespons: 200 -> items[{cart_item_id, product_id, jumlah, subtotal}], total"
+          }
+        },
+        {
+          "name": "Update Jumlah Item Cart (Customer Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jumlah\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/carts/items/{{cart_item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items",
+                "{{cart_item_id}}"
+              ]
+            },
+            "description": "Ubah jumlah item di keranjang (role customer).\nPath: cart_item_id. Body: jumlah (min 1).\nRespons: 200 -> detail cart item"
+          }
+        },
+        {
+          "name": "Hapus Item Cart (Customer Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/carts/items/{{cart_item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items",
+                "{{cart_item_id}}"
+              ]
+            },
+            "description": "Hapus item dari keranjang (role customer).\nPath: cart_item_id.\nRespons: 200 -> data null"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address",
+      "item": [
+        {
+          "name": "List Alamat (Customer Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "addresses"
+              ]
+            },
+            "description": "List alamat customer (role customer).\nRespons: 200 -> [{address_id, nama_penerima, nomor_telepon, alamat, kota, provinsi, kode_pos, is_default, created_at}]"
+          }
+        },
+        {
+          "name": "Detail Alamat (Customer Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Detail satu alamat (role customer).\nPath: address_id.\nRespons: 200 -> detail alamat (404 jika bukan miliknya)"
+          }
+        },
+        {
+          "name": "Buat Alamat (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_penerima\": \"Budi Santoso\",\n  \"nomor_telepon\": \"08123456789\",\n  \"alamat\": \"Jl. Merdeka No. 45, RT 02/RW 05\",\n  \"kota\": \"Jakarta Selatan\",\n  \"provinsi\": \"DKI Jakarta\",\n  \"kode_pos\": \"12560\",\n  \"is_default\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/addresses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "addresses"
+              ]
+            },
+            "description": "Buat alamat baru (role customer).\nBody: nama_penerima (wajib), nomor_telepon, alamat (wajib), kota (wajib), provinsi (wajib), kode_pos (wajib), is_default (bool).\nRespons: 201 -> detail alamat\nCatatan: address_id otomatis tersimpan di variable `address_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.address_id) {",
+                  "  pm.collectionVariables.set(\"address_id\", json.data.address_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Alamat (Customer Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kota\": \"Bandung\",\n  \"provinsi\": \"Jawa Barat\",\n  \"is_default\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Update alamat - cukup kirim field yang ingin diubah, minimal 1 field (role customer).\nPath: address_id. Body: nama_penerima, nomor_telepon, alamat, kota, provinsi, kode_pos, is_default (semua opsional).\nRespons: 200 -> detail alamat"
+          }
+        },
+        {
+          "name": "Hapus Alamat (Customer Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/addresses/{{address_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "addresses",
+                "{{address_id}}"
+              ]
+            },
+            "description": "Hapus alamat (role customer).\nPath: address_id.\nRespons: 200 -> data null"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checkout & Payment",
+      "item": [
+        {
+          "name": "Checkout (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address_id\": \"{{address_id}}\",\n  \"metode_pembayaran\": \"EWALLET\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "checkout"
+              ]
+            },
+            "description": "Checkout semua item di keranjang (role customer).\nBody: address_id (wajib), metode_pembayaran (wajib, contoh: EWALLET/QRIS/BANK_TRANSFER/VA).\nRespons: 201 -> ARRAY [{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}] (satu entry per seller)\nCatatan: order_id pertama otomatis tersimpan di variable `order_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.length > 0 && json.data[0].order_id) {",
+                  "  pm.collectionVariables.set(\"order_id\", json.data[0].order_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Callback Notifikasi Pembayaran (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Callback-Event",
+                "value": "payment_status"
+              },
+              {
+                "key": "X-Callback-Signature",
+                "value": "HMAC-SHA256 dari raw body dengan secret key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"T1234567890\",\n  \"merchant_ref\": \"INV-20260214-ABCDEF\",\n  \"total_amount\": 1650000,\n  \"status\": \"PAID\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/notification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "notification"
+              ]
+            },
+            "description": "Callback dari payment gateway (Tripay) - TANPA auth.\nHeader: X-Callback-Event = payment_status, X-Callback-Signature = HMAC-SHA256 raw body.\nBody: reference, merchant_ref, total_amount, status (PAID/EXPIRED/FAILED/REFUND).\nRespons: 200 -> success true"
+          }
+        },
+        {
+          "name": "Halaman Mock Pay (Public - mode mock)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/mock-pay/{{order_id}}?amount=1650000&name=Budi",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "mock-pay",
+                "{{order_id}}"
+              ],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "1650000"
+                },
+                {
+                  "key": "name",
+                  "value": "Budi"
+                }
+              ]
+            },
+            "description": "Halaman pembayaran simulasi - hanya aktif jika PAYMENT_MODE=mock di .env. TANPA auth.\nPath: order_id. Query: amount (default 0), name (default Pelanggan).\nRespons: 200 -> HTML payment page"
+          }
+        },
+        {
+          "name": "Mock Settle Pembayaran (Public - mode mock)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"status\": \"PAID\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/mock-settle",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "mock-settle"
+              ]
+            },
+            "description": "Simulasikan penyelesaian pembayaran - hanya aktif jika PAYMENT_MODE=mock. TANPA auth.\nBody: order_id (wajib), status (opsional: PAID/EXPIRED/FAILED/REFUND, default PAID).\nRespons: 200 -> success true + message"
+          }
+        },
+        {
+          "name": "Callback Midtrans (Public - mode midtrans)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_status\": \"settlement\",\n  \"fraud_status\": \"accept\",\n  \"order_id\": \"{{order_id}}\",\n  \"status_code\": \"200\",\n  \"gross_amount\": \"1650000.00\",\n  \"signature_key\": \"SHA512(order_id+status_code+gross_amount+MIDTRANS_SERVER_KEY)\",\n  \"transaction_id\": \"txn-123456\",\n  \"payment_type\": \"bank_transfer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payments/midtrans/notification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "midtrans",
+                "notification"
+              ]
+            },
+            "description": "Callback dari Midtrans - hanya aktif jika PAYMENT_MODE=midtrans. TANPA auth.\nBody: transaction_status (settlement/deny/pending/expire/cancel), fraud_status, order_id, status_code, gross_amount (string), signature_key (SHA512 dari order_id+status_code+gross_amount+SERVER_KEY), transaction_id, payment_type.\nRespons: 200 -> success true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order & Review",
+      "item": [
+        {
+          "name": "List Pesanan (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders?page=1&limit=10&status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "List pesanan - role-aware: customer melihat pesanannya sendiri, seller pesanan toko, admin semua.\nQuery: page (default 1), limit (default 10), status (opsional).\nRespons: 200 -> items[{order_id, seller_id, status_order, total_pembayaran, created_at}] + pagination"
+          }
+        },
+        {
+          "name": "Detail Pesanan (Semua Role)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{order_id}}"
+              ]
+            },
+            "description": "Detail pesanan lengkap (semua role, sesuai kepemilikan).\nPath: order_id.\nRespons: 200 -> order_id, customer_id, seller_id, status_order, alamat_pengiriman{...}, metode_pembayaran, items[{order_item_id, product_id, nama_produk, jumlah, harga_saat_transaksi}], subtotal, biaya_pengiriman, total_pembayaran, created_at"
+          }
+        },
+        {
+          "name": "Buat Pesanan Manual (Semua Role)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seller_id\": \"{{seller_id}}\",\n  \"customer_id\": \"{{customer_id}}\",\n  \"metode_pembayaran\": \"BANK_TRANSFER\",\n  \"alamat_pengiriman\": {\n    \"nama_penerima\": \"Budi Santoso\",\n    \"nomor_telepon\": \"08123456789\",\n    \"alamat\": \"Jl. Merdeka No. 45\",\n    \"kota\": \"Jakarta Selatan\",\n    \"provinsi\": \"DKI Jakarta\",\n    \"kode_pos\": \"12560\"\n  },\n  \"items\": [\n    {\n      \"product_id\": \"{{product_id}}\",\n      \"jumlah\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Buat pesanan manual (semua role - biasanya dipakai internal).\nBody: seller_id (wajib), customer_id, metode_pembayaran (wajib), alamat_pengiriman{nama_penerima (wajib), nomor_telepon, alamat (wajib), kota (wajib), provinsi (wajib), kode_pos (wajib)}, items[{product_id (wajib, no duplikat), jumlah (min 1)}] (min 1 item).\nRespons: 201 -> OrderDetailResponse"
+          }
+        },
+        {
+          "name": "Update Status Pesanan (Semua Role)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_order\": \"dikirim\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{order_id}}"
+              ]
+            },
+            "description": "Update status pesanan.\nPath: order_id. Body: status_order (wajib: pending/diproses/dikirim/selesai/dibatalkan).\nCatatan: customer hanya bisa set 'dibatalkan'; seller/admin sesuai alur.\nRespons: 200 -> OrderDetailResponse"
+          }
+        },
+        {
+          "name": "Hapus Pesanan (Semua Role)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{order_id}}"
+              ]
+            },
+            "description": "Hapus pesanan (semua role, sesuai kepemilikan).\nPath: order_id.\nRespons: 200 -> data null"
+          }
+        },
+        {
+          "name": "Buat Review (Customer Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"rating\": 4.5,\n  \"komentar\": \"Sepatu sesuai foto, pengiriman cepat, recommended!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{order_id}}",
+                "review"
+              ]
+            },
+            "description": "Beri review produk pada pesanan yang sudah selesai (role customer).\nPath: order_id. Body: product_id (wajib), rating (wajib, 1-5), komentar (opsional).\nRespons: 201 -> review_id, order_id, product_id, rating, komentar"
+          }
+        }
+      ]
+    }
+  ]
+}
