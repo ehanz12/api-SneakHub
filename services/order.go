@@ -19,8 +19,8 @@ func orderScopeQuery(db *gorm.DB, userID, role string) (*gorm.DB, error) {
 		return db.Where("customer_id = ?", userID), nil
 	case "seller":
 		var seller models.Seller
-		if err := db.Select("seller_id").Where("user_id = ?", userID).First(&seller).Error; err != nil {
-			return nil, err
+		if err := database.DB.Select("seller_id").Where("user_id = ?", userID).First(&seller).Error; err != nil {
+			return nil, errors.New("data toko seller tidak ditemukan")
 		}
 		return db.Where("seller_id = ?", seller.SellerID), nil
 	default:
