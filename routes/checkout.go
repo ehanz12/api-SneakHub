@@ -8,8 +8,8 @@ import (
 )
 
 func SetupCheckoutRoute(api fiber.Router) {
-	api.Post("/checkout", middleware.CustomerOnly, handlers.CheckoutHandler)
-	api.Post("/checkout/shipping-rates", middleware.CustomerOnly, handlers.GetShippingRatesHandler)
+	api.Post("/checkout", middleware.CustomerSellerOnly, handlers.CheckoutHandler)
+	api.Post("/checkout/shipping-rates", middleware.CustomerSellerOnly, handlers.GetShippingRatesHandler)
 	api.Post("/payments/notification", handlers.PaymentNotificationHandler)
 
 	if config.AppConfig.PaymentMode == "mock" {

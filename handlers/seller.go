@@ -26,7 +26,7 @@ func CreateSellerHandler(c *fiber.Ctx) error {
 
 	seller, err := services.CreateSellerService(userID, r)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "terjadi kesalahan server", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
 	return c.Status(201).JSON(fiber.Map{"success": true, "message": "Akun Seller berhasil diaktifkan.", "data": mappers.ToSellerCreate(seller)})
 }

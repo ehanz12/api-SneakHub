@@ -8,8 +8,8 @@ import (
 
 func SetupCartRoute(api fiber.Router) {
 	cart := api.Group("/carts")
-	cart.Get("/", middleware.CustomerOnly, handlers.GetCartHandler)
-	cart.Post("/items", middleware.CustomerOnly, handlers.AddCartItemsHandler)
-	cart.Put("/items/:cart_item_id", middleware.CustomerOnly, handlers.UpdateCartItemHandler)
-	cart.Delete("/items/:cart_item_id", middleware.CustomerOnly, handlers.DeleteCartItemHandler)
+	cart.Get("/", middleware.CustomerSellerOnly, handlers.GetCartHandler)
+	cart.Post("/items", middleware.CustomerSellerOnly, handlers.AddCartItemsHandler)
+	cart.Put("/items/:cart_item_id", middleware.CustomerSellerOnly, handlers.UpdateCartItemHandler)
+	cart.Delete("/items/:cart_item_id", middleware.CustomerSellerOnly, handlers.DeleteCartItemHandler)
 }

@@ -8,9 +8,9 @@ import (
 
 func SetupAddressRoute(api fiber.Router) {
 	address := api.Group("/addresses")
-	address.Get("/", middleware.CustomerOnly, handlers.GetAddressesHandler)
-	address.Get("/:address_id", middleware.CustomerOnly, handlers.GetAddressHandler)
-	address.Post("/", middleware.CustomerOnly, handlers.CreateAddressHandler)
-	address.Put("/:address_id", middleware.CustomerOnly, handlers.UpdateAddressHandler)
-	address.Delete("/:address_id", middleware.CustomerOnly, handlers.DeleteAddressHandler)
+	address.Get("/", middleware.CustomerSellerOnly, handlers.GetAddressesHandler)
+	address.Get("/:address_id", middleware.CustomerSellerOnly, handlers.GetAddressHandler)
+	address.Post("/", middleware.CustomerSellerOnly, handlers.CreateAddressHandler)
+	address.Put("/:address_id", middleware.CustomerSellerOnly, handlers.UpdateAddressHandler)
+	address.Delete("/:address_id", middleware.CustomerSellerOnly, handlers.DeleteAddressHandler)
 }
