@@ -55,3 +55,45 @@ func (r *UpdateProductStatusRequest) Validate() map[string]string {
 
 	return errs
 }
+
+type VerifySellerRequest struct {
+	Status string `json:"status"`
+}
+
+func (r *VerifySellerRequest) Validate() map[string]string {
+	errs := make(map[string]string)
+
+	status := strings.ToUpper(strings.TrimSpace(r.Status))
+	if status == "" {
+		errs["status"] = "status wajib diisi"
+	} else {
+		switch status {
+		case "VERIFIED", "REJECTED":
+		default:
+			errs["status"] = "status harus salah satu dari: VERIFIED, REJECTED"
+		}
+	}
+
+	return errs
+}
+
+type UpdateUserRoleRequest struct {
+	Peran string `json:"peran"`
+}
+
+func (r *UpdateUserRoleRequest) Validate() map[string]string {
+	errs := make(map[string]string)
+
+	peran := strings.ToUpper(strings.TrimSpace(r.Peran))
+	if peran == "" {
+		errs["peran"] = "peran wajib diisi"
+	} else {
+		switch peran {
+		case "SELLER", "CUSTOMER":
+		default:
+			errs["peran"] = "peran harus salah satu dari: SELLER, CUSTOMER"
+		}
+	}
+
+	return errs
+}

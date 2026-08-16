@@ -67,3 +67,78 @@ func CreateReviewService(customerID, orderID string, r requests.CreateReviewRequ
 
 	return &review, nil
 }
+
+// reviewQueryWithCustomer menambahkan preload data customer ke query review.
+func reviewQueryWithCustomer(db *gorm.DB) *gorm.DB {
+	return db.Preload("Customer", func(db *gorm.DB) *gorm.DB {
+		return db.Select("user_id", "nama")
+	})
+}
+
+// GetProductReviewsService mengambil daftar review sebuah produk beserta
+// rata-rata rating dan total review.
+func GetProductReviewsService(productID string, page, limit int) ([]models.Review, float64, int64, error) {
+	var total int64
+	if err := database.DB.Model(&models.Review{}).
+		Where("product_id = ?", productID).Count(&total).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal menghitung review")
+	}
+
+	var avg float64
+	if err := database.DB.Model(&models.Review{}).
+		Where("product_id = ?", productID).
+		Select("COALESCE(AVG(rating), 0)").Scan(&avg).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal menghitung rating")
+	}
+
+	var reviews []models.Review
+	if err := reviewQueryWithCustomer(database.DB).
+		Where("product_id = ?", productID).
+		Order("created_at desc").
+		Offset((page - 1) * limit).Limit(limit).
+		Find(&reviews).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal memuat review")
+	}
+
+	return reviews, avg, total, nil
+}
+
+// GetSellerReviewsService mengambil daftar review seluruh produk milik
+// sebuah toko beserta rata-rata rating.
+func GetSellerReviewsService(sellerID string, page, limit int) ([]models.Review, float64, int64, error) {
+	var sellerCheck int64
+	if err := database.DB.Model(&models.Seller{}).
+		Where("seller_id = ?", sellerID).Count(&sellerCheck).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal memvalidasi toko")
+	}
+	if sellerCheck == 0 {
+		return nil, 0, 0, errors.New("toko seller tidak ditemukan")
+	}
+
+	var total int64
+	if err := database.DB.Model(&models.Review{}).
+		Joins("JOIN products ON products.product_id = reviews.product_id").
+		Where("products.seller_id = ?", sellerID).Count(&total).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal menghitung review")
+	}
+
+	var avg float64
+	if err := database.DB.Model(&models.Review{}).
+		Joins("JOIN products ON products.product_id = reviews.product_id").
+		Where("products.seller_id = ?", sellerID).
+		Select("COALESCE(AVG(reviews.rating), 0)").Scan(&avg).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal menghitung rating")
+	}
+
+	var reviews []models.Review
+	if err := reviewQueryWithCustomer(database.DB).
+		Joins("JOIN products ON products.product_id = reviews.product_id").
+		Where("products.seller_id = ?", sellerID).
+		Order("reviews.created_at desc").
+		Offset((page - 1) * limit).Limit(limit).
+		Find(&reviews).Error; err != nil {
+		return nil, 0, 0, errors.New("gagal memuat review")
+	}
+
+	return reviews, avg, total, nil
+}

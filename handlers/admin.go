@@ -66,6 +66,85 @@ func AdminUpdateUserStatusHandler(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Status akun berhasil diperbarui.", "data": mappers.ToAdminUserStatusResponse(user)})
 }
 
+func AdminGetSellersHandler(c *fiber.Ctx) error {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+
+	sellers, total, err := services.GetAdminSellersService(page, limit, c.Query("status"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	totalPages := 0
+	if total > 0 {
+		totalPages = (int(total) + limit - 1) / limit
+	}
+
+	data := responses.AdminSellerListDataResponse{
+		Items: mappers.ToAdminSellerListResponse(sellers),
+		Pagination: responses.PaginationResponse{
+			Page:       page,
+			Limit:      limit,
+			Total:      total,
+			TotalPages: totalPages,
+		},
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Data toko seller berhasil diambil.", "data": data})
+}
+
+func AdminVerifySellerHandler(c *fiber.Ctx) error {
+	sellerID := c.Params("seller_id")
+
+	var r requests.VerifySellerRequest
+	if err := c.BodyParser(&r); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
+	}
+	if errs := r.Validate(); len(errs) > 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"success": false,
+			"message": "kesalahan validasi",
+			"errors":  errs,
+		})
+	}
+
+	seller, err := services.VerifySellerService(sellerID, r.Status)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Status verifikasi toko berhasil diperbarui.", "data": mappers.ToAdminSellerVerificationResponse(seller)})
+}
+
+func AdminUpdateUserRoleHandler(c *fiber.Ctx) error {
+	userID := c.Params("user_id")
+
+	var r requests.UpdateUserRoleRequest
+	if err := c.BodyParser(&r); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
+	}
+	if errs := r.Validate(); len(errs) > 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"success": false,
+			"message": "kesalahan validasi",
+			"errors":  errs,
+		})
+	}
+
+	user, err := services.UpdateUserRoleService(userID, r.Peran)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Peran user berhasil diperbarui.", "data": mappers.ToAdminUserRoleResponse(user)})
+}
+
 func AdminGetProductsHandler(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))

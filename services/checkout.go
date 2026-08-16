@@ -54,12 +54,12 @@ func buildAlamatSnapshot(namaPenerima, nomorTelepon, alamat, kota, provinsi, kod
 	return json.Marshal(payload)
 }
 
-func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address, addressID string, metode string, items []models.CartItem) (*models.Order, error) {
+func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address, addressID string, metode string, items []models.CartItem, shippingFee float64, kurir string) (*models.Order, error) {
 	subtotal := 0.0
 	for _, item := range items {
 		subtotal += item.HargaSaatDitambahkan * float64(item.Jumlah)
 	}
-	total := subtotal + BiayaPengirimanFlat
+	total := subtotal + shippingFee
 
 	snapshot, err := buildAlamatSnapshot(address.NamaPenerima, address.NomorTelepon, address.Alamat, address.Kota, address.Provinsi, address.KodePos)
 	if err != nil {
@@ -74,11 +74,18 @@ func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address
 		AlamatPengiriman: datatypes.JSON(snapshot),
 		MetodePembayaran: metode,
 		Subtotal:         subtotal,
-		BiayaPengiriman:  BiayaPengirimanFlat,
+		BiayaPengiriman:  shippingFee,
 		TotalPesanan:     total,
 	}
 	if err := tx.Create(&order).Error; err != nil {
 		return nil, errors.New("gagal membuat pesanan")
+	}
+
+	if err := tx.Create(&models.Shipment{
+		OrderID: order.OrderID,
+		Kurir:   kurir,
+	}).Error; err != nil {
+		return nil, errors.New("gagal menyimpan data pengiriman")
 	}
 
 	for _, item := range items {
@@ -150,7 +157,7 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 	var cart models.Cart
 	if err := tx.
 		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
-			return db.Select("product_id", "seller_id", "nama_produk", "stok", "status_publikasi", "harga")
+			return db.Select("product_id", "seller_id", "nama_produk", "stok", "berat", "status_publikasi", "harga")
 		}).
 		Where("customer_id = ?", customerID).
 		First(&cart).Error; err != nil {
@@ -206,7 +213,8 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 	orders := make([]models.Order, 0, len(groups))
 
 	for _, items := range groups {
-		order, err := createOrderForSeller(tx, customerID, address, address.AddressID, r.MetodePembayaran, items)
+		shippingFee, kurir := resolveShippingCostForGroup(tx, items, address.KodePos, r.Pengiriman)
+		order, err := createOrderForSeller(tx, customerID, address, address.AddressID, r.MetodePembayaran, items, shippingFee, kurir)
 		if err != nil {
 			tx.Rollback()
 			return nil, err

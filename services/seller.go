@@ -54,6 +54,20 @@ func normalizeRole(role string) string {
 	return ""
 }
 
+// normalizeSellerStatus memetakan alias status verifikasi (mis. PENDING)
+// ke nilai enum status_verifikasi di database. Mengembalikan "" bila tidak dikenal.
+func normalizeSellerStatus(status string) string {
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case "PENDING":
+		return "pending"
+	case "VERIFIED", "VERIFIKASI":
+		return "verified"
+	case "REJECTED", "DITOLAK":
+		return "rejected"
+	}
+	return ""
+}
+
 // ProductWithSales adalah produk beserta jumlah total terjualnya.
 type ProductWithSales struct {
 	models.Product
@@ -90,7 +104,30 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 		return nil, errors.New("user tidak ditemukan")
 	}
 	var exist models.Seller
-	if err := tx.Select("user_id").Where("user_id = ?", UserID).First(&exist).Error; err == nil {
+	if err := tx.Select("seller_id", "status_verifikasi").Where("user_id = ?", UserID).First(&exist).Error; err == nil {
+		// Pengajuan sebelumnya ditolak: boleh mengajukan ulang dengan
+		// memperbarui nama & deskripsi toko.
+		if exist.StatusVerifikasi == "rejected" {
+			updates := map[string]interface{}{
+				"nama_toko":         req.NamaToko,
+				"deskripsi_toko":    req.DeskripsiToko,
+				"status_verifikasi": "pending",
+			}
+			if err := tx.Model(&models.Seller{}).Where("seller_id = ?", exist.SellerID).
+				Updates(updates).Error; err != nil {
+				tx.Rollback()
+				return nil, errors.New("gagal mengajukan ulang seller")
+			}
+			if err := tx.Commit().Error; err != nil {
+				tx.Rollback()
+				return nil, errors.New("terjadi kesalahan server")
+			}
+			exist.NamaToko = req.NamaToko
+			exist.DeskripsiToko = req.DeskripsiToko
+			exist.StatusVerifikasi = "pending"
+			return &exist, nil
+		}
+		tx.Rollback()
 		return nil, errors.New("user sudah mengajukan menjadi seller")
 	}
 	seller := models.Seller{
@@ -117,6 +154,88 @@ func findSellerByUserID(db *gorm.DB, userID string) (*models.Seller, error) {
 		Where("user_id = ?", userID).First(&seller).Error; err != nil {
 		return nil, errors.New("data toko seller tidak ditemukan")
 	}
+	return &seller, nil
+}
+
+// GetAdminSellersService mengambil daftar toko seller (scope admin) dengan
+// filter status verifikasi dan pagination.
+func GetAdminSellersService(page, limit int, status string) ([]models.Seller, int64, error) {
+	query := database.DB.Model(&models.Seller{})
+
+	if s := normalizeSellerStatus(status); s != "" {
+		query = query.Where("status_verifikasi = ?", s)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, errors.New("gagal memuat data toko")
+	}
+
+	var sellers []models.Seller
+	if err := query.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("user_id", "nama", "email")
+	}).Order("created_at desc").
+		Offset((page - 1) * limit).Limit(limit).Find(&sellers).Error; err != nil {
+		return nil, 0, errors.New("gagal memuat data toko")
+	}
+
+	return sellers, total, nil
+}
+
+// VerifySellerService memperbarui status verifikasi pengajuan toko seller
+// (scope admin). Jika disetujui (verified), peran user otomatis menjadi
+// seller. Jika ditolak (rejected), user tetap customer dan boleh mengajukan
+// ulang.
+func VerifySellerService(sellerID, status string) (*models.Seller, error) {
+	s := normalizeSellerStatus(status)
+	if s != "verified" && s != "rejected" {
+		return nil, errors.New("status tidak valid, gunakan VERIFIED atau REJECTED")
+	}
+
+	tx := database.DB.Begin()
+	if tx.Error != nil {
+		return nil, errors.New("terjadi kesalahan server")
+	}
+
+	var seller models.Seller
+	if err := tx.Select("seller_id", "user_id", "status_verifikasi").
+		Where("seller_id = ?", sellerID).First(&seller).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("toko seller tidak ditemukan")
+	}
+	if seller.StatusVerifikasi != "pending" {
+		tx.Rollback()
+		return nil, errors.New("hanya pengajuan berstatus pending yang dapat diverifikasi")
+	}
+
+	if err := tx.Model(&models.Seller{}).Where("seller_id = ?", sellerID).
+		Update("status_verifikasi", s).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("gagal memperbarui status toko")
+	}
+
+	isi := ""
+	if s == "verified" {
+		if err := tx.Model(&models.User{}).Where("user_id = ?", seller.UserID).
+			Update("peran", "seller").Error; err != nil {
+			tx.Rollback()
+			return nil, errors.New("gagal memperbarui peran user")
+		}
+		isi = "Pengajuan toko Anda telah disetujui. Selamat, Anda sekarang menjadi seller!"
+	} else {
+		isi = "Pengajuan toko Anda ditolak. Anda dapat mengajukan ulang."
+	}
+	if err := createNotification(tx, seller.UserID, "dll", isi); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("perubahan gagal disimpan")
+	}
+
+	seller.StatusVerifikasi = s
 	return &seller, nil
 }
 

@@ -3,6 +3,8 @@ package middleware
 import (
 	"strings"
 
+	"github.com/ehanz12/api-SneakHub/database"
+	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/utils"
 	"github.com/golang-jwt/jwt/v5"
 
@@ -32,10 +34,22 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "invalid jwt claims"})
 		}
 
-		role, ok := claims["role"].(string)
+		userID, ok := claims["user_id"].(string)
 		if !ok {
-			return c.Status(401).JSON(fiber.Map{"error": "invalid role claim"})
+			return c.Status(401).JSON(fiber.Map{"error": "invalid user_id claim"})
 		}
+
+		// Ambil peran terbaru dari database agar perubahan role (mis. admin
+		// mengubah customer menjadi seller) langsung aktif tanpa login ulang.
+		var user models.User
+		if err := database.DB.Select("peran", "status_akun").
+			Where("user_id = ?", userID).First(&user).Error; err != nil {
+			return c.Status(401).JSON(fiber.Map{"error": "user tidak ditemukan"})
+		}
+		if user.StatusAkun != "aktif" {
+			return c.Status(403).JSON(fiber.Map{"error": "akun tidak aktif"})
+		}
+		role := user.Peran
 
 		// Cek apakah role ada di allowedRoles
 		roleAllowed := false
@@ -48,13 +62,6 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 		if !roleAllowed {
 			return c.Status(403).JSON(fiber.Map{"error": "akses ditolak untuk role: " + role})
 		}
-
-		userIDFloat, ok := claims["user_id"].(string)
-		if !ok {
-			return c.Status(401).JSON(fiber.Map{"error": "invalid user_id claim"})
-		}
-
-		userID := string(userIDFloat)
 
 		c.Locals("user_id", userID)
 		c.Locals("role", role)

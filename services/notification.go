@@ -6,7 +6,21 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/database"
 	"github.com/ehanz12/api-SneakHub/models"
+	"gorm.io/gorm"
 )
+
+// createNotification membuat notifikasi baru untuk user di dalam transaksi db.
+func createNotification(db *gorm.DB, userID, jenis, isi string) error {
+	notification := models.Notification{
+		UserID:          userID,
+		JenisNotifikasi: jenis,
+		IsiNotifikasi:   isi,
+	}
+	if err := db.Create(&notification).Error; err != nil {
+		return errors.New("gagal membuat notifikasi")
+	}
+	return nil
+}
 
 // normalizeNotificationType memetakan alias jenis notifikasi (mis.
 // PRICE_ALERT) ke nilai enum jenis_notifikasi di database.

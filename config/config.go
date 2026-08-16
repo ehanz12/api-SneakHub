@@ -28,6 +28,8 @@ type Config struct {
 	MidtransServerKey string
 	MidtransClientKey string
 	MidtransSandbox   bool
+
+	BiteshipAPIKey string
 }
 
 // variable dari struct
@@ -60,6 +62,8 @@ func LoadEnv() {
 		MidtransServerKey: os.Getenv("MIDTRANS_SERVER_KEY"),
 		MidtransClientKey: os.Getenv("MIDTRANS_CLIENT_KEY"),
 		MidtransSandbox:   os.Getenv("MIDTRANS_IS_SANDBOX") == "true",
+
+		BiteshipAPIKey: os.Getenv("BITESHIP_API_KEY"),
 	}
 }
 

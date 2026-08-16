@@ -14,6 +14,7 @@ type CreateProduct struct {
 	Deskripsi       *string  `json:"deskripsi"`
 	Harga           int      `json:"harga"`
 	Stok            int      `json:"stok"`
+	Berat           int      `json:"berat"`
 	ConditionScore  *float64 `json:"condition_score"`
 	StatusPublikasi string   `json:"status_publikasi"`
 	UkuranTersedia  []string `json:"ukuran_tersedia"`
@@ -42,6 +43,10 @@ func (r *CreateProduct) Validate() map[string]string {
 
 	if r.Stok < 0 {
 		errs["stok"] = "stok tidak boleh kurang dari 0"
+	}
+
+	if r.Berat < 0 {
+		errs["berat"] = "berat tidak boleh kurang dari 0"
 	}
 
 	if len(r.UkuranTersedia) == 0 {

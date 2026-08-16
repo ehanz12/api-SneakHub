@@ -16,6 +16,7 @@ type Product struct {
 	Deskripsi       *string        `gorm:"column:deskripsi;type:text" json:"deskripsi,omitempty"`
 	Harga           float64        `gorm:"column:harga;type:decimal(15,2);not null" json:"harga"`
 	Stok            int            `gorm:"column:stok;not null;default:0" json:"stok"`
+	Berat           int            `gorm:"column:berat;not null;default:0" json:"berat"`
 	UkuranTersedia  datatypes.JSON `gorm:"column:ukuran_tersedia;type:json"`
 	ConditionScore  *float64       `gorm:"column:condition_score;type:decimal(5,2)" json:"condition_score,omitempty"`
 	StatusPublikasi string         `gorm:"column:status_publikasi;type:enum('aktif','draft','nonaktif');default:draft" json:"status_publikasi"`

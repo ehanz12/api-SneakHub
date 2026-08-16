@@ -11,6 +11,8 @@ type Seller struct {
 	NamaToko         string   `gorm:"column:nama_toko;type:varchar(150);not null" json:"nama_toko"`
 	DeskripsiToko    *string  `gorm:"column:deskripsi_toko;type:text" json:"deskripsi_toko,omitempty"`
 	StatusVerifikasi string   `gorm:"column:status_verifikasi;type:enum('pending','verified','rejected');default:pending" json:"status_verifikasi"`
+	KodePosAsal      *string  `gorm:"column:kode_pos_asal;type:varchar(10)" json:"kode_pos_asal,omitempty"`
+	KotaAsal         *string  `gorm:"column:kota_asal;type:varchar(100)" json:"kota_asal,omitempty"`
 	SellerTrustScore *float64 `gorm:"column:seller_trust_score;type:decimal(5,2)" json:"seller_trust_score,omitempty"`
 	Timestamps
 

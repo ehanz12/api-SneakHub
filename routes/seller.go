@@ -17,4 +17,5 @@ func SetupSellerRoute(api fiber.Router) {
 
 	sellers := api.Group("/sellers")
 	sellers.Get("/:seller_id/trust-score", middleware.AllRoles, handlers.SellerTrustScoreHandler)
+	sellers.Get("/:seller_id/reviews", middleware.AllRoles, handlers.GetSellerReviewsHandler)
 }

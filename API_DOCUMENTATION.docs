@@ -19,6 +19,8 @@ Dokumentasi lengkap API SneakHub: platform marketplace sneaker (jual-beli sepatu
 | `tripay` | Payment gateway Tripay (default) |
 | `midtrans` | Payment gateway Midtrans |
 
+4. Cek ongkir otomatis memakai **Biteship** (`BITESHIP_API_KEY` di `.env`). Jika key kosong, toko belum mengisi `kode_pos_asal`, atau layanan error, ongkir memakai **flat Rp15.000** sebagai fallback.
+
 Rate limiting: maksimal **200 request/menit per IP** (respons `429`).
 
 ---
@@ -156,6 +158,7 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 | GET | `/api/seller/orders` | seller | Pesanan masuk ke toko |
 | GET | `/api/seller/dashboard` | seller | Statistik toko |
 | GET | `/api/sellers/:seller_id/trust-score` | Semua | Skor kepercayaan seller |
+| GET | `/api/sellers/:seller_id/reviews` | Semua | Review & rating toko |
 
 **Aktivasi Seller** — `201`
 
@@ -167,7 +170,9 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 ```
 
 - `nama_toko` wajib (min 3 karakter), `deskripsi_toko` opsional (min 3 karakter).
-- Respons: `seller_id`, `user_id`, `nama_toko`, `status_verifikasi`.
+- Respons: `seller_id`, `user_id`, `nama_toko`, `status_verifikasi` (`PENDING`).
+- Pengajuan hanya disetujui/ditolak oleh **admin** (lihat 4.3). Jika ditolak (`REJECTED`), user **boleh mengajukan ulang** dengan mengirim lagi ke endpoint yang sama (nama & deskripsi toko ikut diperbarui).
+- Untuk perhitungan ongkir otomatis, toko mengisi `kode_pos_asal` & `kota_asal` (lihat 4.11).
 
 **Dashboard Seller** — `200`
 
@@ -195,6 +200,9 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 |---|---|---|---|
 | GET | `/api/admin/users` | admin | List semua user |
 | PATCH | `/api/admin/users/:user_id/status` | admin | Ubah status akun |
+| PATCH | `/api/admin/users/:user_id/role` | admin | Ubah peran user (customer ⇄ seller) |
+| GET | `/api/admin/sellers` | admin | List pengajuan toko seller |
+| PATCH | `/api/admin/sellers/:seller_id/verification` | admin | Setujui / tolak pengajuan toko |
 | GET | `/api/admin/products` | admin | List semua produk |
 | PATCH | `/api/admin/products/:product_id/status` | admin | Ubah status publikasi produk |
 | GET | `/api/admin/orders` | admin | List semua pesanan |
@@ -207,6 +215,28 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 ```
 
 Nilai `status_akun`: `ACTIVE`, `INACTIVE`, `SUSPENDED`, `BLOCKED`. `alasan` wajib.
+
+**Ubah Peran User** — `200`
+
+```json
+{ "peran": "CUSTOMER" }
+```
+
+Nilai `peran`: `SELLER`, `CUSTOMER` (peran admin tidak bisa diubah).
+- `SELLER`: user dijadikan seller, toko langsung berstatus `VERIFIED`.
+- `CUSTOMER` (menurunkan seller): toko di tabel `sellers` menjadi `REJECTED`, seluruh produknya `INACTIVE` (tidak bisa dibeli; order lama tetap jalan), dan user mendapat notifikasi. Role baru langsung aktif tanpa login ulang (middleware membaca role dari database).
+
+**List Pengajuan Toko** — `200`
+
+`GET /api/admin/sellers?status=pending&page=1&limit=20` → `items[{seller_id, user_id, nama_toko, status_verifikasi, nama_user, email, created_at}]` + pagination. `status` opsional: `PENDING`, `VERIFIED`, `REJECTED`.
+
+**Setujui / Tolak Pengajuan Toko** — `200`
+
+```json
+{ "status": "VERIFIED" }
+```
+
+Nilai `status`: `VERIFIED` (user otomatis menjadi seller + notifikasi) atau `REJECTED` (user tetap customer, boleh mengajukan ulang). Hanya pengajuan berstatus `PENDING` yang bisa diverifikasi.
 
 **Ubah Status Produk** — `200`
 
@@ -395,13 +425,14 @@ Respons: `items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[
   "deskripsi": "Sepatu original kondisi 9/10, sudah pernah dipakai 3 kali",
   "harga": 1500000,
   "stok": 5,
+  "berat": 1200,
   "condition_score": 85,
   "status_publikasi": "ACTIVE",
   "ukuran_tersedia": ["42", "43"]
 }
 ```
 
-- `nama_produk`, `brand_id`, `category_id`, `ukuran_tersedia` (ukuran sepatu valid, min 1) wajib; `harga` > 0; `stok` ≥ 0; `deskripsi` opsional (min 10 karakter); `condition_score` opsional 0–100.
+- `nama_produk`, `brand_id`, `category_id`, `ukuran_tersedia` (ukuran sepatu valid, min 1) wajib; `harga` > 0; `stok` ≥ 0; `berat` (gram, ≥ 0) dipakai untuk cek ongkir otomatis; `deskripsi` opsional (min 10 karakter); `condition_score` opsional 0–100.
 - Respons: `product_id`, `status_publikasi`. Seller hanya bisa mengelola produk miliknya sendiri.
 
 **Upload Gambar** — `201` (multipart/form-data): field `gambar` (file, wajib, max 5 MB) + `urutan_tampil` (teks, opsional ≥ 0). Respons: `image_id`, `product_id`, `url`, `urutan_tampil`, `embedding`, `created_at` (embedding dipakai untuk search-by-image).
@@ -488,6 +519,7 @@ Minimal 1 item; `jumlah` ≥ 1. Respons: `items[{cart_item_id, product_id, jumla
 | Method | Endpoint | Auth | Deskripsi |
 |---|---|---|---|
 | POST | `/api/checkout` | customer | Checkout keranjang |
+| POST | `/api/checkout/shipping-rates` | customer | Hitung ongkir per toko (Biteship) |
 | POST | `/api/payments/notification` | Public | Callback Tripay |
 | GET | `/api/mock-pay/:order_id` | Public* | Halaman bayar simulasi |
 | POST | `/api/payments/mock-settle` | Public* | Settle pembayaran simulasi |
@@ -495,17 +527,29 @@ Minimal 1 item; `jumlah` ≥ 1. Respons: `items[{cart_item_id, product_id, jumla
 
 *\*hanya aktif saat `PAYMENT_MODE=mock`; **hanya aktif saat `PAYMENT_MODE=midtrans`.*
 
+**Hitung Ongkir** — `200`
+
+```json
+{ "address_id": "uuid-alamat" }
+```
+
+Respons berupa **array per toko**: `[{seller_id, nama_toko, berat, kota_asal, options: [{kurir, service, biaya, estimasi, is_fallback}]}]`. `is_fallback: true` berarti memakai ongkir flat Rp15.000 (toko belum set `kode_pos_asal`, `BITESHIP_API_KEY` kosong, atau layanan error). Kurir: JNE, SiCepat, AnterAja, J&T.
+
 **Checkout** — `201`
 
 ```json
 {
   "address_id": "uuid-alamat",
-  "metode_pembayaran": "EWALLET"
+  "metode_pembayaran": "EWALLET",
+  "pengiriman": [
+    { "seller_id": "uuid-toko", "kurir": "jne" }
+  ]
 }
 ```
 
-- `address_id` dan `metode_pembayaran` wajib.
+- `address_id` dan `metode_pembayaran` wajib; `pengiriman` opsional (pilihan kurir per toko). Jika kosong atau kurir tidak cocok, dipakai **kurir termurah**; jika Biteship tidak tersedia, dipakai flat Rp15.000.
 - Respons berupa **array** (satu entry per seller karena item dari beberapa toko dipisah menjadi beberapa order): `[{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}]`.
+- `biaya_pengiriman` per order dihitung dari berat produk (`berat` × jumlah) dan jarak kode pos toko → alamat tujuan.
 - `payment_url` dari gateway (Tripay `checkout_url` / Midtrans `redirect_url`) untuk membayar.
 
 **Callback Tripay** — `200` (tanpa auth)
@@ -562,6 +606,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 | PUT | `/api/orders/:order_id` | Semua | Update status pesanan |
 | DELETE | `/api/orders/:order_id` | Semua | Hapus pesanan |
 | POST | `/api/orders/:order_id/review` | customer | Review produk |
+| GET | `/api/products/:product_id/reviews` | Semua | List review & rating produk |
 
 **List Pesanan** — `200`: `?page=1&limit=10&status=pending`. Role-aware: customer → pesanan miliknya; seller → pesanan tokonya; admin → semua.
 
@@ -620,6 +665,14 @@ Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya
 ```
 
 `product_id` wajib, `rating` 1–5, `komentar` opsional. Respons: `review_id`, `order_id`, `product_id`, `rating`, `komentar`.
+
+**List Review Produk** — `200`
+
+`GET /api/products/:product_id/reviews?page=1&limit=20` → `{items: [{review_id, product_id, customer: {user_id, nama}, rating, komentar, created_at}], rating_rata_rata, total_review}` + pagination.
+
+**List Review Toko** — `200`
+
+`GET /api/sellers/:seller_id/reviews?page=1&limit=20` → format sama dengan review produk, berisi review seluruh produk milik toko tersebut.
 
 ---
 

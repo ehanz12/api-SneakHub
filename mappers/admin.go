@@ -29,6 +29,39 @@ func ToAdminUserStatusResponse(u *models.User) responses.AdminUserStatusResponse
 	}
 }
 
+func ToAdminSellerListResponse(sellers []models.Seller) []responses.AdminSellerListItemResponse {
+	out := make([]responses.AdminSellerListItemResponse, 0, len(sellers))
+	for _, s := range sellers {
+		item := responses.AdminSellerListItemResponse{
+			SellerID:         s.SellerID,
+			UserID:           s.UserID,
+			NamaToko:         s.NamaToko,
+			StatusVerifikasi: displaySellerStatus(s.StatusVerifikasi),
+			CreatedAt:        s.CreatedAt,
+		}
+		if s.User.UserID != "" {
+			item.NamaUser = s.User.Nama
+			item.Email = s.User.Email
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func ToAdminSellerVerificationResponse(s *models.Seller) responses.AdminSellerVerificationResponse {
+	return responses.AdminSellerVerificationResponse{
+		SellerID:         s.SellerID,
+		StatusVerifikasi: displaySellerStatus(s.StatusVerifikasi),
+	}
+}
+
+func ToAdminUserRoleResponse(u *models.User) responses.AdminUserRoleResponse {
+	return responses.AdminUserRoleResponse{
+		UserID: u.UserID,
+		Peran:  strings.ToUpper(u.Peran),
+	}
+}
+
 func ToAdminProductListResponse(products []models.Product) []responses.AdminProductListItemResponse {
 	out := make([]responses.AdminProductListItemResponse, 0, len(products))
 	for _, p := range products {

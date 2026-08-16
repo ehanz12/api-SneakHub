@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/ehanz12/api-SneakHub/mappers"
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/requests"
 	"github.com/ehanz12/api-SneakHub/responses"
@@ -52,6 +53,33 @@ func CheckoutHandler(c *fiber.Ctx) error {
 		"success": true,
 		"message": "Checkout berhasil.",
 		"data":    data,
+	})
+}
+
+func GetShippingRatesHandler(c *fiber.Ctx) error {
+	customerID := c.Locals("user_id").(string)
+
+	var r requests.ShippingRatesRequest
+	if err := c.BodyParser(&r); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
+	}
+	if errs := r.Validate(); len(errs) > 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"success": false,
+			"message": "kesalahan validasi",
+			"errors":  errs,
+		})
+	}
+
+	rates, err := services.GetShippingRatesService(customerID, r.AddressID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"success": true,
+		"message": "Ongkir berhasil dihitung.",
+		"data":    mappers.ToShippingRatesResponse(rates),
 	})
 }
 

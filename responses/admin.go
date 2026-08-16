@@ -20,6 +20,31 @@ type AdminUserStatusResponse struct {
 	StatusAkun string `json:"status_akun"`
 }
 
+type AdminSellerListItemResponse struct {
+	SellerID         string    `json:"seller_id"`
+	UserID           string    `json:"user_id"`
+	NamaToko         string    `json:"nama_toko"`
+	StatusVerifikasi string    `json:"status_verifikasi"`
+	NamaUser         string    `json:"nama_user"`
+	Email            string    `json:"email"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+type AdminSellerListDataResponse struct {
+	Items      []AdminSellerListItemResponse `json:"items"`
+	Pagination PaginationResponse            `json:"pagination"`
+}
+
+type AdminSellerVerificationResponse struct {
+	SellerID         string `json:"seller_id"`
+	StatusVerifikasi string `json:"status_verifikasi"`
+}
+
+type AdminUserRoleResponse struct {
+	UserID string `json:"user_id"`
+	Peran  string `json:"peran"`
+}
+
 type AdminProductListItemResponse struct {
 	ProductID       string  `json:"product_id"`
 	NamaProduk      string  `json:"nama_produk"`

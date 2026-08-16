@@ -56,6 +56,20 @@ func displayOrderStatus(status string) string {
 	return strings.ToUpper(status)
 }
 
+// displaySellerStatus memetakan nilai enum status_verifikasi database
+// ke alias Inggris yang dipakai pada respons API.
+func displaySellerStatus(status string) string {
+	switch status {
+	case "pending":
+		return "PENDING"
+	case "verified":
+		return "VERIFIED"
+	case "rejected":
+		return "REJECTED"
+	}
+	return strings.ToUpper(status)
+}
+
 func ToSellerCreate(u *models.Seller) *responses.SellerResponse {
 	return &responses.SellerResponse{
 		SellerID:         u.SellerID,

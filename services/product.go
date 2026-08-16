@@ -51,6 +51,7 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 		Deskripsi:       r.Deskripsi,
 		Harga:           float64(r.Harga),
 		Stok:            r.Stok,
+		Berat:           r.Berat,
 		StatusPublikasi: r.StatusPublikasi,
 		ConditionScore:  r.ConditionScore,
 		UkuranTersedia:  ukuranTersedia,
@@ -188,6 +189,10 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 
 	if r.Harga <= 0 {
 		product.Harga = float64(r.Harga)
+	}
+
+	if r.Berat >= 0 {
+		product.Berat = r.Berat
 	}
 
 	if r.StatusPublikasi != "" {
