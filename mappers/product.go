@@ -6,6 +6,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/responses"
+	"github.com/ehanz12/api-SneakHub/services"
 )
 
 func ToProductResponse(p models.Product) responses.CreateProductResponse {
@@ -63,7 +64,7 @@ func firstImageURL(images []models.ProductImage) string {
 	return images[0].URLObjectStorage
 }
 
-func ToProductListItemResponse(p models.Product) responses.ProductListItemResponse {
+func ToProductListItemResponse(p models.Product, rs services.RatingSummary) responses.ProductListItemResponse {
 	item := responses.ProductListItemResponse{
 		ProductID:      p.ProductID,
 		NamaProduk:     p.NamaProduk,
@@ -72,6 +73,8 @@ func ToProductListItemResponse(p models.Product) responses.ProductListItemRespon
 		Stok:           p.Stok,
 		UkuranTersedia: unmarshalUkuran(p.UkuranTersedia),
 		ConditionScore: p.ConditionScore,
+		AvgRating:      rs.AvgRating,
+		TotalReview:    rs.TotalReview,
 		ImageURL:       firstImageURL(p.Images),
 	}
 	if p.Seller.SellerID != "" {
@@ -84,15 +87,15 @@ func ToProductListItemResponse(p models.Product) responses.ProductListItemRespon
 	return item
 }
 
-func ToProductListResponse(products []models.Product) []responses.ProductListItemResponse {
+func ToProductListResponse(products []models.Product, summaries map[string]services.RatingSummary) []responses.ProductListItemResponse {
 	out := make([]responses.ProductListItemResponse, 0, len(products))
 	for _, p := range products {
-		out = append(out, ToProductListItemResponse(p))
+		out = append(out, ToProductListItemResponse(p, summaries[p.ProductID]))
 	}
 	return out
 }
 
-func ToProductDetailResponse(p models.Product) responses.ProductDetailResponse {
+func ToProductDetailResponse(p models.Product, rs services.RatingSummary) responses.ProductDetailResponse {
 	detail := responses.ProductDetailResponse{
 		ProductID:       p.ProductID,
 		SellerID:        p.SellerID,
@@ -105,6 +108,8 @@ func ToProductDetailResponse(p models.Product) responses.ProductDetailResponse {
 		Stok:            p.Stok,
 		UkuranTersedia:  unmarshalUkuran(p.UkuranTersedia),
 		ConditionScore:  p.ConditionScore,
+		AvgRating:       rs.AvgRating,
+		TotalReview:     rs.TotalReview,
 		StatusPublikasi: strings.ToUpper(p.StatusPublikasi),
 		Images:          make([]responses.ProductDetailImageResponse, 0, len(p.Images)),
 	}

@@ -43,8 +43,14 @@ func GetProductsHandler(c *fiber.Ctx) error {
 		totalPages = (int(total) + limit - 1) / limit
 	}
 
+	productIDs := make([]string, 0, len(products))
+	for _, p := range products {
+		productIDs = append(productIDs, p.ProductID)
+	}
+	summaries := services.GetRatingSummaries(productIDs)
+
 	data := responses.ProductListDataResponse{
-		Items: mappers.ToProductListResponse(products),
+		Items: mappers.ToProductListResponse(products, summaries),
 		Pagination: responses.PaginationResponse{
 			Page:       page,
 			Limit:      limit,
@@ -61,7 +67,8 @@ func GetProductByIDHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "message": "Produk tidak ditemukan."})
 	}
-	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Detail produk berhasil diambil.", "data": mappers.ToProductDetailResponse(*product)})
+	summary := services.GetRatingSummaries([]string{productID})[productID]
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Detail produk berhasil diambil.", "data": mappers.ToProductDetailResponse(*product, summary)})
 }
 
 func CreateProductHandler(c *fiber.Ctx) error {
@@ -88,7 +95,7 @@ func CreateProductHandler(c *fiber.Ctx) error {
 func UpdateProductHandler(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	productID := c.Params("product_id")
-	var r requests.CreateProduct
+	var r requests.UpdateProductRequest
 	if err := c.BodyParser(&r); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
 	}

@@ -1427,7 +1427,7 @@
                                                                                 }
                                                                             ]
                                                               },
-                                                      "description":  "List & pencarian produk (semua role).\nQuery: page, limit (default 20), search, brand_id, category_id, kondisi, min_price, max_price, size, sort.\nRespons: 200 -> items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, image_url, seller{seller_id, nama_toko, seller_trust_score}}] + pagination"
+                                                      "description":  "List & pencarian produk (semua role).\nQuery: page, limit (default 20), search, brand_id, category_id, kondisi, min_price, max_price, size, sort.\nRespons: 200 -> items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, avg_rating, total_review, image_url, seller{seller_id, nama_toko, seller_trust_score}}] + pagination"
                                                   }
                                   },
                                   {
@@ -1451,7 +1451,7 @@
                                                                                "{{product_id}}"
                                                                            ]
                                                               },
-                                                      "description":  "Detail produk lengkap (semua role).\nPath: product_id.\nRespons: 200 -> product_id, seller_id, nama_produk, brand_id, category_id, kondisi, deskripsi, harga, stok, ukuran_tersedia[], condition_score, status_publikasi, images[{image_id, url, urutan_tampil}]"
+                                                      "description":  "Detail produk lengkap (semua role).\nPath: product_id.\nRespons: 200 -> product_id, seller_id, nama_produk, brand_id, category_id, kondisi, deskripsi, harga, stok, ukuran_tersedia[], condition_score, avg_rating, total_review, status_publikasi, images[{image_id, url, urutan_tampil}]"
                                                   }
                                   },
                                   {
@@ -1515,7 +1515,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"nama_produk\": \"Air Jordan 1 High OG (Updated)\",\n  \"brand_id\": \"{{brand_id}}\",\n  \"category_id\": \"{{category_id}}\",\n  \"kondisi\": \"USED\",\n  \"deskripsi\": \"Sepatu original kondisi 9/10, sudah pernah dipakai 3 kali\",\n  \"harga\": 1400000,\n  \"stok\": 4,\n  \"condition_score\": 85,\n  \"status_publikasi\": \"ACTIVE\",\n  \"ukuran_tersedia\": [\"42\", \"43\", \"44\"]\n}"
+                                                                   "raw":  "{\n  \"harga\": 1400000,\n  \"stok\": 4\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{base_url}}/api/products/{{product_id}}",
@@ -1528,7 +1528,7 @@
                                                                                "{{product_id}}"
                                                                            ]
                                                               },
-                                                      "description":  "Update produk (role seller/admin, hanya produk milik sendiri untuk seller).\nPath: product_id. Body: sama seperti Create Product.\nRespons: 201 -> product_id, harga, updated_at"
+                                                      "description":  "Update produk PARTIAL (role seller/admin, hanya produk milik sendiri untuk seller).\nPath: product_id. Body: semua field opsional - hanya field yang dikirim yang diubah (nama_produk, brand_id, category_id, kondisi, deskripsi (kirim \\\"\\\" untuk hapus), harga, stok, berat, condition_score, status_publikasi, ukuran_tersedia[]).\nCatatan: harga turun ke target_price wishlist -> notifikasi price_alert otomatis; stok naik dari 0 -> notifikasi restock_alert.\nRespons: 201 -> product_id, harga, updated_at"
                                                   }
                                   },
                                   {
@@ -2113,7 +2113,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"address_id\": \"{{address_id}}\",\n  \"metode_pembayaran\": \"EWALLET\"\n}"
+                                                                   "raw":  "{\n  \"address_id\": \"{{address_id}}\",\n  \"metode_pembayaran\": \"EWALLET\",\n  \"pengiriman\": [\n    { \"seller_id\": \"{{seller_id}}\", \"kurir\": \"{{kurir}}\" }\n  ]\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{base_url}}/api/checkout",
@@ -2125,7 +2125,7 @@
                                                                                "checkout"
                                                                            ]
                                                               },
-                                                      "description":  "Checkout semua item di keranjang (role customer).\nBody: address_id (wajib), metode_pembayaran (wajib, contoh: EWALLET/QRIS/BANK_TRANSFER/VA).\nRespons: 201 -> ARRAY [{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}] (satu entry per seller)\nCatatan: order_id pertama otomatis tersimpan di variable `order_id`."
+                                                      "description":  "Checkout semua item di keranjang (role customer).\nBody: address_id (wajib), metode_pembayaran (wajib, contoh: EWALLET/QRIS/BANK_TRANSFER/VA), pengiriman[{seller_id, kurir}] (opsional - pilihan kurir per toko dari Hitung Ongkir; kosong = kurir termurah).\nRespons: 201 -> ARRAY [{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}] (satu entry per seller)\nCatatan: order_id pertama otomatis tersimpan di variable `order_id`."
                                                   },
                                       "event":  [
                                                     {
@@ -2137,13 +2137,62 @@
                                                                                     "  pm.collectionVariables.set(\"order_id\", json.data[0].order_id);",
                                                                                     "}"
                                                                                 ],
-                                                                       "type":  "text/javascript"
-                                                                   }
-                                                    }
-                                                ]
-                                  },
-                                  {
-                                      "name":  "Callback Notifikasi Pembayaran (Public)",
+"type":  "text/javascript"
+                                                                    }
+                                                     }
+                                                 ]
+                                   },
+                                   {
+                                       "name":  "Hitung Ongkir / Shipping Rates (Customer Only)",
+                                       "request":  {
+                                                       "method":  "POST",
+                                                       "header":  [
+                                                                      {
+                                                                          "key":  "Authorization",
+                                                                          "value":  "Bearer {{token}}"
+                                                                      },
+                                                                      {
+                                                                          "key":  "Content-Type",
+                                                                          "value":  "application/json"
+                                                                      }
+                                                                  ],
+                                                       "body":  {
+                                                                    "mode":  "raw",
+                                                                    "raw":  "{\n  \"address_id\": \"{{address_id}}\"\n}"
+                                                                },
+                                                       "url":  {
+                                                                   "raw":  "{{base_url}}/api/checkout/shipping-rates",
+                                                                   "host":  [
+                                                                                "{{base_url}}"
+                                                                            ],
+                                                                   "path":  [
+                                                                                "api",
+                                                                                "checkout",
+                                                                                "shipping-rates"
+                                                                            ]
+                                                               },
+                                                       "description":  "Hitung ongkir per toko via Biteship (role customer).\nBody: address_id (wajib).\nRespons: 200 -> [{seller_id, nama_toko, berat, kota_asal, options: [{kurir, service, biaya, estimasi, is_fallback}]}]\nCatatan: is_fallback=true berarti ongkir flat Rp15.000 (kode_pos_asal toko kosong / BITESHIP_API_KEY kosong / layanan error).\nTest: seller_id & kurir pilihan pertama (non-fallback) otomatis tersimpan di variable `seller_id` & `kurir` untuk dipakai di Checkout."
+                                                   },
+                                       "event":  [
+                                                     {
+                                                         "listen":  "test",
+                                                         "script":  {
+                                                                        "exec":  [
+                                                                                     "const json = pm.response.json();",
+                                                                                     "if (json.data && json.data.length > 0) {",
+                                                                                     "  const seller = json.data[0];",
+                                                                                     "  pm.collectionVariables.set(\"seller_id\", seller.seller_id);",
+                                                                                     "  const chosen = seller.options.find(o => !o.is_fallback) || seller.options[0];",
+                                                                                     "  if (chosen) pm.collectionVariables.set(\"kurir\", chosen.kurir);",
+                                                                                     "}"
+                                                                                 ],
+                                                                        "type":  "text/javascript"
+                                                                    }
+                                                     }
+                                                 ]
+                                   },
+                                   {
+                                       "name":  "Callback Notifikasi Pembayaran (Public)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  [
@@ -2175,7 +2224,7 @@
                                                                                "notification"
                                                                            ]
                                                               },
-                                                      "description":  "Callback dari payment gateway (Tripay) - TANPA auth.\nHeader: X-Callback-Event = payment_status, X-Callback-Signature = HMAC-SHA256 raw body.\nBody: reference, merchant_ref, total_amount, status (PAID/EXPIRED/FAILED/REFUND).\nRespons: 200 -> success true"
+                                                      "description":  "Callback dari payment gateway (Tripay) - TANPA auth.\nHeader: X-Callback-Event = payment_status, X-Callback-Signature = HMAC-SHA256 raw body.\nBody: reference, merchant_ref, total_amount, status (PAID/EXPIRED/FAILED/REFUND).\nCatatan: PAID -> order diproses; EXPIRED/FAILED -> stok dikembalikan & order dibatalkan (idempotent); REFUND tidak mengembalikan stok.\nRespons: 200 -> success true"
                                                   }
                                   },
                                   {
@@ -2305,7 +2354,7 @@
                                                                                 }
                                                                             ]
                                                               },
-                                                      "description":  "List pesanan - role-aware: customer melihat pesanannya sendiri, seller pesanan toko, admin semua.\nQuery: page (default 1), limit (default 10), status (opsional).\nRespons: 200 -> items[{order_id, seller_id, status_order, total_pembayaran, created_at}] + pagination"
+                                                      "description":  "List pesanan - role-aware: customer melihat pesanannya sendiri, seller pesanan toko, admin semua.\nQuery: page (default 1), limit (default 10), status (opsional).\nRespons: 200 -> items[{order_id, seller_id, status_order, total_pembayaran, status_pembayaran, created_at}] + pagination\nCatatan: status_pembayaran (pending/paid/failed/expired/refunded) dipakai untuk menandai pesanan yang perlu dibayar."
                                                   }
                                   },
                                   {
@@ -2329,7 +2378,7 @@
                                                                                "{{order_id}}"
                                                                            ]
                                                               },
-                                                      "description":  "Detail pesanan lengkap (semua role, sesuai kepemilikan).\nPath: order_id.\nRespons: 200 -> order_id, customer_id, seller_id, status_order, alamat_pengiriman{...}, metode_pembayaran, items[{order_item_id, product_id, nama_produk, jumlah, harga_saat_transaksi}], subtotal, biaya_pengiriman, total_pembayaran, created_at"
+                                                      "description":  "Detail pesanan lengkap (semua role, sesuai kepemilikan).\nPath: order_id.\nRespons: 200 -> order_id, customer_id, seller_id, status_order, alamat_pengiriman{...}, metode_pembayaran, items[{order_item_id, product_id, nama_produk, jumlah, harga_saat_transaksi}], subtotal, biaya_pengiriman, total_pembayaran, payment{payment_id, metode_pembayaran, jumlah, status_pembayaran, payment_url, gateway_reference, paid_at}, shipment{shipment_id, kurir, nomor_resi, status_pengiriman, shipped_at, delivered_at}, created_at\nCatatan: payment.payment_url tersedia saat status_pembayaran = pending -> dipakai FE untuk melanjutkan pembayaran (buka Snap Midtrans/Tripay lagi)."
                                                   }
                                   },
                                   {
@@ -2360,7 +2409,7 @@
                                                                                "orders"
                                                                            ]
                                                               },
-                                                      "description":  "Buat pesanan manual (semua role - biasanya dipakai internal).\nBody: seller_id (wajib), customer_id, metode_pembayaran (wajib), alamat_pengiriman{nama_penerima (wajib), nomor_telepon, alamat (wajib), kota (wajib), provinsi (wajib), kode_pos (wajib)}, items[{product_id (wajib, no duplikat), jumlah (min 1)}] (min 1 item).\nRespons: 201 -> OrderDetailResponse"
+                                                      "description":  "Buat pesanan manual (semua role - biasanya dipakai internal).\nBody: seller_id (wajib), customer_id, metode_pembayaran (wajib), alamat_pengiriman{nama_penerima (wajib), nomor_telepon, alamat (wajib), kota (wajib), provinsi (wajib), kode_pos (wajib)}, items[{product_id (wajib, no duplikat), jumlah (min 1)}] (min 1 item).\nRespons: 201 -> OrderDetailResponse\nCatatan: order manual otomatis membuat transaksi pembayaran di gateway (payment_url tersedia di detail order)."
                                                   }
                                   },
                                   {
@@ -2392,7 +2441,7 @@
                                                                                "{{order_id}}"
                                                                            ]
                                                               },
-                                                      "description":  "Update status pesanan.\nPath: order_id. Body: status_order (wajib: pending/diproses/dikirim/selesai/dibatalkan).\nCatatan: customer hanya bisa set \u0027dibatalkan\u0027; seller/admin sesuai alur.\nRespons: 200 -> OrderDetailResponse"
+                                                      "description":  "Update status pesanan.\nPath: order_id. Body: status_order (wajib: pending/diproses/dikirim/selesai/dibatalkan).\nCatatan: customer hanya bisa set \u0027dibatalkan\u0027 dan HANYA saat order masih pending (belum bayar); membatalkan otomatis mengembalikan stok produk. Seller/admin sesuai alur.\nRespons: 200 -> OrderDetailResponse"
                                                   }
                                   },
                                   {

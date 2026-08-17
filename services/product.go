@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,6 +68,38 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 	}
 
 	return &product, nil
+}
+
+// RatingSummary adalah ringkasan rating sebuah produk.
+type RatingSummary struct {
+	AvgRating   float64
+	TotalReview int64
+}
+
+// GetRatingSummaries menghitung rata-rata rating dan jumlah review untuk
+// daftar product_id dalam satu query GROUP BY.
+func GetRatingSummaries(productIDs []string) map[string]RatingSummary {
+	summaries := make(map[string]RatingSummary)
+	if len(productIDs) == 0 {
+		return summaries
+	}
+
+	var rows []struct {
+		ProductID   string  `gorm:"column:product_id"`
+		AvgRating   float64 `gorm:"column:avg_rating"`
+		TotalReview int64   `gorm:"column:total_review"`
+	}
+	if err := database.DB.Model(&models.Review{}).
+		Select("product_id, AVG(rating) AS avg_rating, COUNT(*) AS total_review").
+		Where("product_id IN ?", productIDs).
+		Group("product_id").
+		Scan(&rows).Error; err != nil {
+		return summaries
+	}
+	for _, row := range rows {
+		summaries[row.ProductID] = RatingSummary{AvgRating: row.AvgRating, TotalReview: row.TotalReview}
+	}
+	return summaries
 }
 
 func GetProductsService(page, limit int, search, brandID, categoryID, kondisi string, minPrice, maxPrice float64, size, sort string) ([]models.Product, int64, error) {
@@ -139,7 +172,7 @@ func GetProductByIDService(productID string) (*models.Product, error) {
 	return &product, nil
 }
 
-func UpdateProductService(userID string, productID string, r requests.CreateProduct) (*models.Product, error) {
+func UpdateProductService(userID string, productID string, r requests.UpdateProductRequest) (*models.Product, error) {
 	var sellerID models.Seller
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -157,66 +190,128 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 		tx.Rollback()
 		return nil, errors.New("product tidak ditemukan")
 	}
+	oldPrice := product.Harga
+	oldStok := product.Stok
 
-	if r.BrandID != "" {
+	if r.BrandID != nil {
 		var brandID models.Brand
-		if err := tx.Select("brand_id").Where("brand_id = ? ", r.BrandID).First(&brandID).Error; err != nil {
+		if err := tx.Select("brand_id").Where("brand_id = ? ", *r.BrandID).First(&brandID).Error; err != nil {
 			tx.Rollback()
 			return nil, errors.New("brand tidak ditemukan")
 		}
-		product.BrandID = r.BrandID
+		product.BrandID = *r.BrandID
 	}
-	if r.CategoryID != "" {
+	if r.CategoryID != nil {
 		var CategoryID models.Category
-		if err := tx.Select("category_id").Where("category_id = ? ", r.CategoryID).First(&CategoryID).Error; err != nil {
+		if err := tx.Select("category_id").Where("category_id = ? ", *r.CategoryID).First(&CategoryID).Error; err != nil {
 			tx.Rollback()
 			return nil, errors.New("category tidak ditemukan")
 		}
-		product.CategoryID = r.CategoryID
+		product.CategoryID = *r.CategoryID
 	}
 
-	if r.Kondisi != "" {
-		product.Kondisi = r.Kondisi
+	if r.Kondisi != nil {
+		product.Kondisi = *r.Kondisi
 	}
 
 	if r.Deskripsi != nil {
 		product.Deskripsi = r.Deskripsi
 	}
 
-	if r.NamaProduk != "" {
-		product.NamaProduk = r.NamaProduk
+	if r.NamaProduk != nil {
+		product.NamaProduk = *r.NamaProduk
 	}
 
-	if r.Harga > 0 {
-		product.Harga = float64(r.Harga)
+	if r.Harga != nil {
+		product.Harga = *r.Harga
 	}
 
-	if r.Berat >= 0 {
-		product.Berat = r.Berat
+	if r.Stok != nil {
+		product.Stok = *r.Stok
 	}
 
-	if r.StatusPublikasi != "" {
-		product.StatusPublikasi = normalizeProductStatus(r.StatusPublikasi)
+	if r.Berat != nil {
+		product.Berat = *r.Berat
 	}
-	product.ConditionScore = r.ConditionScore
+
+	if r.StatusPublikasi != nil {
+		product.StatusPublikasi = normalizeProductStatus(*r.StatusPublikasi)
+	}
+
+	if r.ConditionScore != nil {
+		product.ConditionScore = r.ConditionScore
+	}
 
 	if r.UkuranTersedia != nil {
-		ukuranTersedia, err := json.Marshal(r.UkuranTersedia)
+		ukuranTersedia, err := json.Marshal(*r.UkuranTersedia)
 		if err != nil {
 			tx.Rollback()
 			return nil, errors.New("ukuran tersedia tidak valid")
 		}
 		product.UkuranTersedia = ukuranTersedia
 	}
+
 	if err := tx.Save(&product).Error; err != nil {
 		tx.Rollback()
 		return nil, errors.New("gagal update product")
 	}
+
+	priceChanged := r.Harga != nil && *r.Harga != oldPrice
+	restocked := r.Stok != nil && oldStok == 0 && *r.Stok > 0
+	if priceChanged || restocked {
+		if err := triggerProductAlerts(tx, product, priceChanged, restocked); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
 		return nil, errors.New("data produk gagal disimpan")
 	}
 	return &product, nil
+}
+
+// triggerProductAlerts membangkitkan notifikasi price_alert/restock_alert
+// kepada user yang memasang alert pada produk, lalu menonaktifkan alert-nya.
+func triggerProductAlerts(tx *gorm.DB, product models.Product, priceChanged, restocked bool) error {
+	if priceChanged {
+		var wishlists []models.Wishlist
+		if err := tx.Where("product_id = ? AND price_alert_enabled = ? AND target_price >= ?",
+			product.ProductID, true, product.Harga).Find(&wishlists).Error; err != nil {
+			return errors.New("gagal memuat wishlist")
+		}
+		for _, w := range wishlists {
+			isi := fmt.Sprintf("Harga produk %s turun ke Rp %.0f, sesuai target kamu.", product.NamaProduk, product.Harga)
+			if err := createNotification(tx, w.CustomerID, "price_alert", isi); err != nil {
+				return err
+			}
+			if err := tx.Model(&models.Wishlist{}).Where("wishlist_id = ?", w.WishlistID).
+				Updates(map[string]interface{}{"price_alert_enabled": false, "target_price": nil}).Error; err != nil {
+				return errors.New("gagal menonaktifkan price alert")
+			}
+		}
+	}
+
+	if restocked {
+		var wishlists []models.Wishlist
+		if err := tx.Where("product_id = ? AND restock_alert_enabled = ?",
+			product.ProductID, true).Find(&wishlists).Error; err != nil {
+			return errors.New("gagal memuat wishlist")
+		}
+		for _, w := range wishlists {
+			isi := fmt.Sprintf("Produk %s sudah tersedia kembali (stok %d).", product.NamaProduk, product.Stok)
+			if err := createNotification(tx, w.CustomerID, "restock_alert", isi); err != nil {
+				return err
+			}
+			if err := tx.Model(&models.Wishlist{}).Where("wishlist_id = ?", w.WishlistID).
+				Update("restock_alert_enabled", false).Error; err != nil {
+				return errors.New("gagal menonaktifkan restock alert")
+			}
+		}
+	}
+
+	return nil
 }
 
 // DeleteProductService menghapus produk beserta data terkait.

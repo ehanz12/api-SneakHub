@@ -36,6 +36,8 @@ type ProductListItemResponse struct {
 	Stok           int                `json:"stok"`
 	UkuranTersedia []string           `json:"ukuran_tersedia"`
 	ConditionScore *float64           `json:"condition_score"`
+	AvgRating      float64            `json:"avg_rating"`
+	TotalReview    int64              `json:"total_review"`
 	ImageURL       string             `json:"image_url"`
 	Seller         SellerInfoResponse `json:"seller"`
 }
@@ -70,6 +72,8 @@ type ProductDetailResponse struct {
 	Stok            int                          `json:"stok"`
 	UkuranTersedia  []string                     `json:"ukuran_tersedia"`
 	ConditionScore  *float64                     `json:"condition_score"`
+	AvgRating       float64                      `json:"avg_rating"`
+	TotalReview     int64                        `json:"total_review"`
 	StatusPublikasi string                       `json:"status_publikasi"`
 	Images          []ProductDetailImageResponse `json:"images"`
 }

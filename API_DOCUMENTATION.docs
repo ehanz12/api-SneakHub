@@ -412,7 +412,7 @@ Notifikasi dibuat otomatis oleh sistem (mis. harga turun, stok tersedia, pesanan
 
 Query param: `page` (1), `limit` (20), `search`, `brand_id`, `category_id`, `kondisi`, `min_price`, `max_price`, `size`, `sort` (mis. `harga_asc`).
 
-Respons: `items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, image_url, seller{seller_id, nama_toko, seller_trust_score}}]` + pagination.
+Respons: `items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[], condition_score, avg_rating, total_review, image_url, seller{seller_id, nama_toko, seller_trust_score}}]` + pagination. `avg_rating` (0 jika belum ada review) & `total_review` dipakai FE untuk menampilkan bintang di kartu produk.
 
 **Buat Produk** — `201`
 
@@ -434,6 +434,25 @@ Respons: `items[{product_id, nama_produk, harga, kondisi, stok, ukuran_tersedia[
 
 - `nama_produk`, `brand_id`, `category_id`, `ukuran_tersedia` (ukuran sepatu valid, min 1) wajib; `harga` > 0; `stok` ≥ 0; `berat` (gram, ≥ 0) dipakai untuk cek ongkir otomatis; `deskripsi` opsional (min 10 karakter); `condition_score` opsional 0–100.
 - Respons: `product_id`, `status_publikasi`. Seller hanya bisa mengelola produk miliknya sendiri.
+
+**Update Produk (partial)** — `201`
+
+Semua field opsional — hanya field yang dikirim yang diubah:
+
+```json
+{
+  "harga": 1300000,
+  "stok": 8
+}
+```
+
+- Field sama dengan buat produk (`nama_produk`, `brand_id`, `category_id`, `kondisi`, `deskripsi`, `harga`, `stok`, `berat`, `condition_score`, `status_publikasi`, `ukuran_tersedia`), tapi **tidak wajib diisi**.
+- `deskripsi` diubah dengan mengirim string (bisa kosong `""` untuk menghapus); `condition_score` hanya diubah jika dikirim.
+- Validasi berlaku per field yang dikirim (mis. `harga` > 0, `stok` ≥ 0, `condition_score` 0–100).
+- **Price alert**: jika `harga` turun mencapai `target_price` wishlist user, notifikasi `price_alert` otomatis dibuat & alert dinonaktifkan. **Restock alert**: jika `stok` naik dari 0, notifikasi `restock_alert` dibuat untuk user yang memasangnya.
+- Respons: `product_id`, `harga`, `updated_at`.
+
+**Detail Produk** — `200`: seperti list + `seller_id`, `brand_id`, `category_id`, `deskripsi`, `status_publikasi`, `images[]`, plus `avg_rating` & `total_review`.
 
 **Upload Gambar** — `201` (multipart/form-data): field `gambar` (file, wajib, max 5 MB) + `urutan_tampil` (teks, opsional ≥ 0). Respons: `image_id`, `product_id`, `url`, `urutan_tampil`, `embedding`, `created_at` (embedding dipakai untuk search-by-image).
 
@@ -550,7 +569,7 @@ Respons berupa **array per toko**: `[{seller_id, nama_toko, berat, kota_asal, op
 - `address_id` dan `metode_pembayaran` wajib; `pengiriman` opsional (pilihan kurir per toko). Jika kosong atau kurir tidak cocok, dipakai **kurir termurah**; jika Biteship tidak tersedia, dipakai flat Rp15.000.
 - Respons berupa **array** (satu entry per seller karena item dari beberapa toko dipisah menjadi beberapa order): `[{order_id, status_order, subtotal, biaya_pengiriman, total_pembayaran, metode_pembayaran, payment_url}]`.
 - `biaya_pengiriman` per order dihitung dari berat produk (`berat` × jumlah) dan jarak kode pos toko → alamat tujuan.
-- `payment_url` dari gateway (Tripay `checkout_url` / Midtrans `redirect_url`) untuk membayar.
+- `payment_url` dari gateway (Tripay `checkout_url` / Midtrans `redirect_url`) untuk membayar. Stok dipotong saat checkout; dikembalikan otomatis jika dibatalkan / expired / failed.
 
 **Callback Tripay** — `200` (tanpa auth)
 
@@ -565,7 +584,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 }
 ```
 
-`status`: `PAID` (order → selesai & stok berkurang), `EXPIRED`, `FAILED`, `REFUND`.
+`status`: `PAID` (order → `diproses`, stok tetap terpotong), `EXPIRED` / `FAILED` (stok **dikembalikan** & order → `dibatalkan`, idempotent terhadap callback ganda), `REFUND` (stok tidak dikembalikan karena barang sudah terkirim).
 
 **Mock Pay** — `200` (HTML): `GET /api/mock-pay/:order_id?amount=1650000&name=Budi` — halaman pembayaran simulasi untuk mengetes alur tanpa gateway.
 
@@ -608,7 +627,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 | POST | `/api/orders/:order_id/review` | customer | Review produk |
 | GET | `/api/products/:product_id/reviews` | Semua | List review & rating produk |
 
-**List Pesanan** — `200`: `?page=1&limit=10&status=pending`. Role-aware: customer → pesanan miliknya; seller → pesanan tokonya; admin → semua.
+**List Pesanan** — `200`: `?page=1&limit=10&status=pending`. Role-aware: customer → pesanan miliknya; seller → pesanan tokonya; admin → semua. Item: `[{order_id, seller_id, status_order, total_pembayaran, status_pembayaran, created_at}]` — `status_pembayaran` (pending/paid/failed/expired/refunded) dipakai FE untuk menandai pesanan yang perlu dibayar.
 
 **Detail Pesanan** — `200`
 
@@ -624,9 +643,22 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
   "subtotal": 1500000,
   "biaya_pengiriman": 150000,
   "total_pembayaran": 1650000,
+  "payment": {
+    "payment_id": "uuid",
+    "metode_pembayaran": "EWALLET",
+    "jumlah": 1650000,
+    "status_pembayaran": "pending",
+    "payment_url": "https://app.sandbox.midtrans.com/snap/v4/transactions/...",
+    "gateway_reference": "uuid-order",
+    "paid_at": null
+  },
+  "shipment": { "shipment_id": "uuid", "kurir": "jne", "nomor_resi": null, "status_pengiriman": "menunggu", "shipped_at": null, "delivered_at": null },
   "created_at": "..."
 }
 ```
+
+- `payment.payment_url` selalu tersedia saat `status_pembayaran: pending` — FE memakainya untuk **melanjutkan pembayaran** (buka Snap Midtrans / checkout Tripay) ketika user sempat menutup tab.
+- `shipment` diisi setelah checkout (kurir hasil pilihan smart ongkir).
 
 **Buat Pesanan Manual** — `201`
 
@@ -644,7 +676,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 }
 ```
 
-`seller_id`, `metode_pembayaran`, `alamat_pengiriman` (nama_penerima, alamat, kota, provinsi, kode_pos), dan minimal 1 item wajib. Tidak boleh ada `product_id` duplikat; `jumlah` ≥ 1.
+`seller_id`, `metode_pembayaran`, `alamat_pengiriman` (nama_penerima, alamat, kota, provinsi, kode_pos), dan minimal 1 item wajib. Tidak boleh ada `product_id` duplikat; `jumlah` ≥ 1. Order manual otomatis membuat transaksi pembayaran di gateway — `payment_url` tersedia di detail order.
 
 **Update Status** — `200`
 
@@ -652,7 +684,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 { "status_order": "dikirim" }
 ```
 
-Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`.
+Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`, dan **hanya saat order masih `pending`** (belum dibayar). Membatalkan pesanan otomatis **mengembalikan stok** produk.
 
 **Review** — `201`
 
@@ -688,6 +720,8 @@ Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya
 8. **Update status order** → `diproses` → `dikirim` → `selesai`.
 9. **Review** produk.
 10. Cek **notifikasi** & **dashboard seller** untuk melihat dampak transaksi.
+
+> Jika user menutup tab sebelum membayar: `GET /api/orders/:order_id` → `payment.payment_url` (status `pending`) → buka lagi halaman pembayaran. Jika status `pending` dan user tidak jadi bayar, `PUT /api/orders/:order_id` dengan `{"status_order": "dibatalkan"}` → stok otomatis dikembalikan.
 
 ---
 

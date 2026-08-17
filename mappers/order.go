@@ -14,12 +14,17 @@ func ToOrderAlamatResponse(raw []byte) responses.OrderAlamatResponse {
 }
 
 func ToOrderListItemResponse(o models.Order) responses.OrderListItemResponse {
+	statusPembayaran := ""
+	if o.Payment != nil {
+		statusPembayaran = o.Payment.StatusPembayaran
+	}
 	return responses.OrderListItemResponse{
-		OrderID:         o.OrderID,
-		SellerID:        o.SellerID,
-		StatusOrder:     o.StatusOrder,
-		TotalPembayaran: o.TotalPesanan,
-		CreatedAt:       o.CreatedAt,
+		OrderID:          o.OrderID,
+		SellerID:         o.SellerID,
+		StatusOrder:      o.StatusOrder,
+		TotalPembayaran:  o.TotalPesanan,
+		StatusPembayaran: statusPembayaran,
+		CreatedAt:        o.CreatedAt,
 	}
 }
 
@@ -29,6 +34,36 @@ func ToOrderListResponse(orders []models.Order) []responses.OrderListItemRespons
 		out = append(out, ToOrderListItemResponse(o))
 	}
 	return out
+}
+
+func ToOrderPaymentResponse(p *models.Payment) *responses.OrderPaymentResponse {
+	if p == nil || p.PaymentID == "" {
+		return nil
+	}
+	return &responses.OrderPaymentResponse{
+		PaymentID:            p.PaymentID,
+		MetodePembayaran:     p.MetodePembayaran,
+		Jumlah:               p.Jumlah,
+		StatusPembayaran:     p.StatusPembayaran,
+		PaymentURL:           p.PaymentURL,
+		GatewayReference:     p.GatewayReference,
+		TransactionReference: p.TransactionReference,
+		PaidAt:               p.PaidAt,
+	}
+}
+
+func ToOrderShipmentResponse(s *models.Shipment) *responses.OrderShipmentResponse {
+	if s == nil || s.ShipmentID == "" {
+		return nil
+	}
+	return &responses.OrderShipmentResponse{
+		ShipmentID:       s.ShipmentID,
+		Kurir:            s.Kurir,
+		NomorResi:        s.NomorResi,
+		StatusPengiriman: s.StatusPengiriman,
+		ShippedAt:        s.ShippedAt,
+		DeliveredAt:      s.DeliveredAt,
+	}
 }
 
 func ToOrderDetailResponse(o models.Order) responses.OrderDetailResponse {
@@ -54,6 +89,8 @@ func ToOrderDetailResponse(o models.Order) responses.OrderDetailResponse {
 		Subtotal:         o.Subtotal,
 		BiayaPengiriman:  o.BiayaPengiriman,
 		TotalPembayaran:  o.TotalPesanan,
+		Payment:          ToOrderPaymentResponse(o.Payment),
+		Shipment:         ToOrderShipmentResponse(o.Shipment),
 		CreatedAt:        o.CreatedAt,
 	}
 }

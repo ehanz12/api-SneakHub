@@ -28,6 +28,23 @@ func orderScopeQuery(db *gorm.DB, userID, role string) (*gorm.DB, error) {
 	}
 }
 
+// restoreOrderStock mengembalikan stok seluruh produk pada sebuah pesanan.
+// Dipakai saat pesanan dibatalkan atau pembayaran expired/failed.
+func restoreOrderStock(tx *gorm.DB, orderID string) error {
+	var items []models.OrderItem
+	if err := tx.Select("product_id", "jumlah").Where("order_id = ?", orderID).Find(&items).Error; err != nil {
+		return errors.New("gagal memuat item pesanan")
+	}
+	for _, item := range items {
+		if err := tx.Model(&models.Product{}).
+			Where("product_id = ?", item.ProductID).
+			Update("stok", gorm.Expr("stok + ?", item.Jumlah)).Error; err != nil {
+			return errors.New("gagal mengembalikan stok produk")
+		}
+	}
+	return nil
+}
+
 // normalizeOrderStatus memetakan alias status (mis. COMPLETED) ke nilai
 // enum status_order di database. Mengembalikan "" bila tidak dikenal.
 func normalizeOrderStatus(status string) string {
@@ -62,7 +79,7 @@ func GetOrdersService(userID, role string, page, limit int, status string) ([]mo
 	}
 
 	var orders []models.Order
-	if err := query.Order("created_at desc").Offset((page - 1) * limit).Limit(limit).Find(&orders).Error; err != nil {
+	if err := query.Preload("Payment").Order("created_at desc").Offset((page - 1) * limit).Limit(limit).Find(&orders).Error; err != nil {
 		return nil, 0, errors.New("gagal memuat order")
 	}
 
@@ -74,6 +91,8 @@ func GetOrderService(userID, role, orderID string) (*models.Order, error) {
 		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
 			return db.Select("product_id", "nama_produk")
 		}).
+		Preload("Payment").
+		Preload("Shipment").
 		Where("order_id = ?", orderID)
 	query, err := orderScopeQuery(query, userID, role)
 	if err != nil {
@@ -216,6 +235,16 @@ func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*mo
 		}
 	}
 
+	var customer models.User
+	if err := tx.Select("nama", "email", "nomor_telepon").Where("user_id = ?", customerID).First(&customer).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("gagal memuat data pelanggan")
+	}
+	if err := createOrderPayment(tx, &order, customer); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
 		return nil, errors.New("perubahan order gagal disimpan")
@@ -255,6 +284,16 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 	if role == "customer" && normalized != "dibatalkan" {
 		tx.Rollback()
 		return nil, errors.New("customer hanya dapat membatalkan pesanan")
+	}
+	if normalized == "dibatalkan" {
+		if order.StatusOrder != "pending" {
+			tx.Rollback()
+			return nil, errors.New("pesanan hanya dapat dibatalkan sebelum pembayaran")
+		}
+		if err := restoreOrderStock(tx, orderID); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	if err := tx.Model(&order).Update("status_order", normalized).Error; err != nil {

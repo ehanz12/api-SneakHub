@@ -43,10 +43,22 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 			tx.Rollback()
 			return errors.New("gagal memperbarui status pesanan")
 		}
-	case "EXPIRED":
-		updates["status_pembayaran"] = "expired"
-	case "FAILED":
-		updates["status_pembayaran"] = "failed"
+	case "EXPIRED", "FAILED":
+		if payment.StatusPembayaran != "expired" && payment.StatusPembayaran != "failed" {
+			if err := restoreOrderStock(tx, orderID); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if err := tx.Model(&models.Order{}).Where("order_id = ?", orderID).Update("status_order", "dibatalkan").Error; err != nil {
+				tx.Rollback()
+				return errors.New("gagal memperbarui status pesanan")
+			}
+		}
+		if transactionStatus == "EXPIRED" {
+			updates["status_pembayaran"] = "expired"
+		} else {
+			updates["status_pembayaran"] = "failed"
+		}
 	case "REFUND":
 		updates["status_pembayaran"] = "refunded"
 	default:

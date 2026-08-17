@@ -102,13 +102,22 @@ func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address
 	return &order, nil
 }
 
-func createCheckoutPayment(tx *gorm.DB, order *models.Order, items []models.CartItem, customer models.User) error {
+// createOrderPayment membuat transaksi pembayaran di gateway untuk sebuah
+// pesanan (item diambil dari tabel order_items) dan menyimpan data Payment.
+func createOrderPayment(tx *gorm.DB, order *models.Order, customer models.User) error {
+	var items []models.OrderItem
+	if err := tx.Preload("Product", func(db *gorm.DB) *gorm.DB {
+		return db.Select("product_id", "nama_produk")
+	}).Where("order_id = ?", order.OrderID).Find(&items).Error; err != nil {
+		return errors.New("gagal memuat item pesanan")
+	}
+
 	orderItems := make([]TripayOrderItem, 0, len(items))
 	for _, item := range items {
 		orderItems = append(orderItems, TripayOrderItem{
 			Sku:      item.ProductID,
 			Name:     item.Product.NamaProduk,
-			Price:    int64(math.Round(item.HargaSaatDitambahkan)),
+			Price:    int64(math.Round(item.HargaSaatTransaksi)),
 			Quantity: int32(item.Jumlah),
 		})
 	}
@@ -219,7 +228,7 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 			tx.Rollback()
 			return nil, err
 		}
-		if err := createCheckoutPayment(tx, order, items, customer); err != nil {
+		if err := createOrderPayment(tx, order, customer); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
