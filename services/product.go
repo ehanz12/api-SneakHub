@@ -52,7 +52,7 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 		Harga:           float64(r.Harga),
 		Stok:            r.Stok,
 		Berat:           r.Berat,
-		StatusPublikasi: r.StatusPublikasi,
+		StatusPublikasi: normalizeProductStatus(r.StatusPublikasi),
 		ConditionScore:  r.ConditionScore,
 		UkuranTersedia:  ukuranTersedia,
 	}
@@ -196,7 +196,7 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 	}
 
 	if r.StatusPublikasi != "" {
-		product.StatusPublikasi = r.StatusPublikasi
+		product.StatusPublikasi = normalizeProductStatus(r.StatusPublikasi)
 	}
 	product.ConditionScore = r.ConditionScore
 
@@ -244,7 +244,7 @@ func DeleteProductService(userID, productID string) error {
 	var activeOrderCount int64
 	if err := tx.Model(&models.OrderItem{}).
 		Joins("JOIN orders ON orders.order_id = order_items.order_id").
-		Where("order_items.product_id = ? AND orders.status_order IN ?", productID, []string{"pending", "diproses", "dikirim"}).
+		Where("order_items.product_id = ? AND LOWER(orders.status_order) IN ?", productID, []string{"pending", "diproses", "dikirim"}).
 		Count(&activeOrderCount).Error; err != nil {
 		tx.Rollback()
 		return errors.New("gagal memeriksa pesanan aktif")

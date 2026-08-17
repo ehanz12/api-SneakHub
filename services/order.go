@@ -131,6 +131,16 @@ func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*mo
 		return nil, errors.New("seller tidak ditemukan")
 	}
 
+	var customerCheck int64
+	if err := tx.Model(&models.User{}).Where("user_id = ?", customerID).Count(&customerCheck).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("gagal memvalidasi pelanggan")
+	}
+	if customerCheck == 0 {
+		tx.Rollback()
+		return nil, errors.New("customer tidak ditemukan")
+	}
+
 	subtotal := 0.0
 	for _, item := range r.Items {
 		var product models.Product
@@ -236,16 +246,22 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 		return nil, errors.New("gagal memuat order")
 	}
 
-	if role == "customer" && status != "dibatalkan" {
+	normalized := normalizeOrderStatus(status)
+	if normalized == "" {
+		tx.Rollback()
+		return nil, errors.New("status_order tidak valid")
+	}
+
+	if role == "customer" && normalized != "dibatalkan" {
 		tx.Rollback()
 		return nil, errors.New("customer hanya dapat membatalkan pesanan")
 	}
 
-	if err := tx.Model(&order).Update("status_order", status).Error; err != nil {
+	if err := tx.Model(&order).Update("status_order", normalized).Error; err != nil {
 		tx.Rollback()
 		return nil, errors.New("gagal memperbarui status order")
 	}
-	order.StatusOrder = status
+	order.StatusOrder = normalized
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()

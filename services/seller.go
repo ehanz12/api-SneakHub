@@ -21,7 +21,7 @@ func normalizeProductStatus(status string) string {
 	case "INACTIVE", "NONAKTIF", "TIDAK_AKTIF":
 		return "nonaktif"
 	case "PENDING":
-		return "pending"
+		return "draft"
 	}
 	return ""
 }

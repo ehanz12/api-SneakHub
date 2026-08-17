@@ -49,6 +49,14 @@ func (r *CreateProduct) Validate() map[string]string {
 		errs["berat"] = "berat tidak boleh kurang dari 0"
 	}
 
+	if strings.TrimSpace(r.StatusPublikasi) != "" {
+		switch strings.ToUpper(strings.TrimSpace(r.StatusPublikasi)) {
+		case "ACTIVE", "AKTIF", "DRAFT", "INACTIVE", "NONAKTIF", "TIDAK_AKTIF":
+		default:
+			errs["status_publikasi"] = "status_publikasi harus salah satu dari: ACTIVE, DRAFT, INACTIVE"
+		}
+	}
+
 	if len(r.UkuranTersedia) == 0 {
 		errs["ukuran_tersedia"] = "ukuran tersedia wajib diisi"
 	} else {
