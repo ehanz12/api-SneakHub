@@ -6,6 +6,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/config"
 	seeders "github.com/ehanz12/api-SneakHub/database/seeders"
+	"github.com/ehanz12/api-SneakHub/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -37,6 +38,7 @@ func ConnectDB() error {
 	// sedders
 	seeders.SeedBrands(DB)
 	seeders.SeedCategories(DB)
+	DB.AutoMigrate(&models.Seller{})
 
 	fmt.Println("👌 CONNECT TO DATABASE COMPLETED !")
 	return nil

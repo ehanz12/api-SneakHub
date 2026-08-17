@@ -187,7 +187,7 @@ func UpdateProductService(userID string, productID string, r requests.CreateProd
 		product.NamaProduk = r.NamaProduk
 	}
 
-	if r.Harga <= 0 {
+	if r.Harga > 0 {
 		product.Harga = float64(r.Harga)
 	}
 
