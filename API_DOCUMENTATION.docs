@@ -152,10 +152,13 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 ### 4.2 Seller (Toko)
 
 | Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
+|---|---|---|--|
 | POST | `/api/users/me/seller-activation` | Semua | Aktivasi akun menjadi seller |
+| GET | `/api/seller/me` | seller | Profil toko sendiri |
+| PUT | `/api/seller/me` | seller | Update profil toko sendiri |
 | GET | `/api/seller/products` | seller | Produk milik toko |
 | GET | `/api/seller/orders` | seller | Pesanan masuk ke toko |
+| POST | `/api/seller/orders/:order_id/ship` | seller | Kirim pesanan (resi otomatis Biteship) |
 | GET | `/api/seller/dashboard` | seller | Statistik toko |
 | GET | `/api/sellers/:seller_id/trust-score` | Semua | Skor kepercayaan seller |
 | GET | `/api/sellers/:seller_id/reviews` | Semua | Review & rating toko |
@@ -165,14 +168,33 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 ```json
 {
   "nama_toko": "Toko Sepatu Budi",
-  "deskripsi_toko": "Menjual sepatu sneaker original dan second berkualitas"
+  "deskripsi_toko": "Menjual sepatu sneaker original dan second berkualitas",
+  "kode_pos_asal": "12560",
+  "kota_asal": "Jakarta Selatan",
+  "alamat_asal": "Jl. Merdeka No. 45"
 }
 ```
 
-- `nama_toko` wajib (min 3 karakter), `deskripsi_toko` opsional (min 3 karakter).
-- Respons: `seller_id`, `user_id`, `nama_toko`, `status_verifikasi` (`PENDING`).
-- Pengajuan hanya disetujui/ditolak oleh **admin** (lihat 4.3). Jika ditolak (`REJECTED`), user **boleh mengajukan ulang** dengan mengirim lagi ke endpoint yang sama (nama & deskripsi toko ikut diperbarui).
-- Untuk perhitungan ongkir otomatis, toko mengisi `kode_pos_asal` & `kota_asal` (lihat 4.11).
+- `nama_toko` wajib (min 3 karakter), `deskripsi_toko` opsional (min 3), `kode_pos_asal` opsional (harus 5 digit angka), `kota_asal` opsional (min 2), `alamat_asal` opsional (min 5).
+- Respons: `seller_id`, `user_id`, `nama_toko`, `deskripsi_toko`, `status_verifikasi` (`PENDING`), `kode_pos_asal`, `kota_asal`, `alamat_asal`.
+- Pengajuan hanya disetujui/ditolak oleh **admin** (lihat 4.3). Jika ditolak (`REJECTED`), user **boleh mengajukan ulang** dengan mengirim lagi ke endpoint yang sama (data toko ikut diperbarui).
+- Untuk perhitungan ongkir otomatis dan **booking kurir Biteship**, toko wajib mengisi `kode_pos_asal`, `kota_asal`, dan `alamat_asal` — bisa saat aktivasi atau lewat **Update Profil Toko**.
+
+**Profil Toko** — `200` / `200`
+
+`GET /api/seller/me` → data profil toko milik seller (format sama dengan respons aktivasi).
+
+`PUT /api/seller/me` — **partial update**: hanya field yang dikirim yang diubah; field dikirim kosong (`""`) akan dihapus (NULL).
+
+```json
+{
+  "kode_pos_asal": "40161",
+  "alamat_asal": "Jl. Asia Afrika No. 8"
+}
+```
+
+- Field yang bisa di-update: `nama_toko` (min 3), `deskripsi_toko` (min 3), `kode_pos_asal` (5 digit), `kota_asal` (min 2), `alamat_asal` (min 5).
+- Syarat: minimal satu field dikirim.
 
 **Dashboard Seller** — `200`
 

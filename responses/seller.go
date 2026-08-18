@@ -3,10 +3,14 @@ package responses
 import "time"
 
 type SellerResponse struct {
-	SellerID         string `json:"seller_id"`
-	UserID           string `json:"user_id"`
-	NamaToko         string `json:"nama_toko"`
-	StatusVerifikasi string `json:"status_verifikasi"`
+	SellerID         string  `json:"seller_id"`
+	UserID           string  `json:"user_id"`
+	NamaToko         string  `json:"nama_toko"`
+	DeskripsiToko    *string `json:"deskripsi_toko,omitempty"`
+	StatusVerifikasi string  `json:"status_verifikasi"`
+	KodePosAsal      *string `json:"kode_pos_asal,omitempty"`
+	KotaAsal         *string `json:"kota_asal,omitempty"`
+	AlamatAsal       *string `json:"alamat_asal,omitempty"`
 }
 
 type SellerProductListItemResponse struct {

@@ -111,3 +111,37 @@ func GetSellerDashboardHandler(c *fiber.Ctx) error {
 
 	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Dashboard seller berhasil diambil.", "data": mappers.ToSellerDashboardResponse(dashboard)})
 }
+
+func GetMySellerProfileHandler(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	seller, err := services.GetSellerProfileService(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Profil toko berhasil diambil.", "data": mappers.ToSellerCreate(seller)})
+}
+
+func UpdateSellerProfileHandler(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+
+	var r requests.UpdateSellerProfileRequest
+	if err := c.BodyParser(&r); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "request gagal", "errors": err.Error()})
+	}
+	if errs := r.Validation(); len(errs) > 0 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"success": false,
+			"message": "kesalahan validasi",
+			"errors":  errs,
+		})
+	}
+
+	seller, err := services.UpdateSellerProfileService(userID, r)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Profil toko berhasil diperbarui.", "data": mappers.ToSellerCreate(seller)})
+}

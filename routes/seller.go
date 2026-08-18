@@ -12,6 +12,8 @@ func SetupSellerRoute(api fiber.Router) {
 	seller.Get("/orders", middleware.SellerOnly, handlers.GetSellerOrdersHandler)
 	seller.Post("/orders/:order_id/ship", middleware.SellerOnly, handlers.ShipOrderHandler)
 	seller.Get("/dashboard", middleware.SellerOnly, handlers.GetSellerDashboardHandler)
+	seller.Get("/me", middleware.SellerOnly, handlers.GetMySellerProfileHandler)
+	seller.Put("/me", middleware.SellerOnly, handlers.UpdateSellerProfileHandler)
 
 	sellerUser := api.Group("/users")
 	sellerUser.Post("/me/seller-activation", middleware.AllRoles, handlers.CreateSellerHandler)

@@ -236,7 +236,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"nama_toko\": \"Toko Sepatu Budi\",\n  \"deskripsi_toko\": \"Menjual sepatu sneaker original dan second berkualitas\"\n}"
+                                                                   "raw":  "{\\n  \"nama_toko\": \"Toko Sepatu Budi\",\\n  \"deskripsi_toko\": \"Menjual sepatu sneaker original dan second berkualitas\",\\n  \"kode_pos_asal\": \"12560\",\\n  \"kota_asal\": \"Jakarta Selatan\",\\n  \"alamat_asal\": \"Jl. Merdeka No. 45\"\\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{base_url}}/api/users/me/seller-activation",
@@ -250,7 +250,7 @@
                                                                                "seller-activation"
                                                                            ]
                                                               },
-                                                      "description":  "Aktivasi akun menjadi seller. Body: nama_toko (wajib, min 3), deskripsi_toko (opsional, min 3).\nRespons: 201 -\u003e seller_id, user_id, nama_toko, status_verifikasi\nCatatan: seller_id dari respons otomatis tersimpan di variable `seller_id`."
+                                                      "description":  "Aktivasi akun menjadi seller.\nBody: nama_toko (wajib, min 3), deskripsi_toko (opsional, min 3), kode_pos_asal (opsional, 5 digit), kota_asal (opsional), alamat_asal (opsional).\nRespons: 201 -\u003e seller_id, user_id, nama_toko, deskripsi_toko, status_verifikasi, kode_pos_asal, kota_asal, alamat_asal\nCatatan: seller_id dari respons otomatis tersimpan di variable seller_id."
                                                   },
                                       "event":  [
                                                     {
@@ -266,6 +266,62 @@
                                                                    }
                                                     }
                                                 ]
+                                  },
+                                  {
+                                      "name":  "Profil Toko (Seller Only)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/seller/me",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "seller",
+                                                                               "me"
+                                                                           ]
+                                                              },
+                                                      "description":  "Lihat profil toko milik seller (role seller).\nRespons: 200 -\u003e seller_id, user_id, nama_toko, deskripsi_toko, status_verifikasi, kode_pos_asal, kota_asal, alamat_asal",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{token}}"
+                                                                     }
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Update Profil Toko (Seller Only)",
+                                      "request":  {
+                                                      "body":  {
+                                                                   "raw":  "{\\n  \"kode_pos_asal\": \"40161\",\\n  \"alamat_asal\": \"Jl. Asia Afrika No. 8\"\\n}",
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "method":  "PUT",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{base_url}}"
+                                                                           ],
+                                                                  "raw":  "{{base_url}}/api/seller/me",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "seller",
+                                                                               "me"
+                                                                           ]
+                                                              },
+                                                      "description":  "Update profil toko milik seller - PARTIAL (role seller).\nBody: semua field opsional (nama_toko min 3, deskripsi_toko min 3, kode_pos_asal 5 digit, kota_asal, alamat_asal); hanya field yang dikirim yang diubah; kirim \"\"\" untuk menghapus (NULL).\nMinimal satu field wajib dikirim.\nCatatan: data ini dipakai untuk cek ongkir \u0026 booking kurir Biteship saat mengirim pesanan.",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Authorization",
+                                                                         "value":  "Bearer {{token}}"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ]
+                                                  }
                                   },
                                   {
                                       "name":  "List Produk Seller",

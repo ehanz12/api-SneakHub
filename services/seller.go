@@ -111,6 +111,9 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 			updates := map[string]interface{}{
 				"nama_toko":         req.NamaToko,
 				"deskripsi_toko":    req.DeskripsiToko,
+				"kode_pos_asal":     req.KodePosAsal,
+				"kota_asal":         req.KotaAsal,
+				"alamat_asal":       req.AlamatAsal,
 				"status_verifikasi": "pending",
 			}
 			if err := tx.Model(&models.Seller{}).Where("seller_id = ?", exist.SellerID).
@@ -124,6 +127,9 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 			}
 			exist.NamaToko = req.NamaToko
 			exist.DeskripsiToko = req.DeskripsiToko
+			exist.KodePosAsal = req.KodePosAsal
+			exist.KotaAsal = req.KotaAsal
+			exist.AlamatAsal = req.AlamatAsal
 			exist.StatusVerifikasi = "pending"
 			return &exist, nil
 		}
@@ -134,6 +140,9 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 		UserID:        UserID,
 		NamaToko:      req.NamaToko,
 		DeskripsiToko: req.DeskripsiToko,
+		KodePosAsal:   req.KodePosAsal,
+		KotaAsal:      req.KotaAsal,
+		AlamatAsal:    req.AlamatAsal,
 	}
 
 	if err := tx.Create(&seller).Error; err != nil {
@@ -145,6 +154,97 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 		return nil, errors.New("terjadi kesalahan server")
 	}
 	return &seller, nil
+}
+
+// GetSellerProfileService mengambil profil toko milik user seller.
+func GetSellerProfileService(userID string) (*models.Seller, error) {
+	var seller models.Seller
+	if err := database.DB.Where("user_id = ?", userID).First(&seller).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("data toko seller tidak ditemukan")
+		}
+		return nil, errors.New("gagal memuat profil toko")
+	}
+	return &seller, nil
+}
+
+// UpdateSellerProfileService memperbarui profil toko milik user seller
+// (partial update: hanya field yang dikirim yang diubah).
+func UpdateSellerProfileService(userID string, req requests.UpdateSellerProfileRequest) (*models.Seller, error) {
+	tx := database.DB.Begin()
+	if tx.Error != nil {
+		tx.Rollback()
+		return nil, errors.New("transaksi database gagal dimulai")
+	}
+
+	var seller models.Seller
+	if err := tx.Where("user_id = ?", userID).First(&seller).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("data toko seller tidak ditemukan")
+		}
+		return nil, errors.New("gagal memuat profil toko")
+	}
+
+	updates := make(map[string]interface{})
+	if req.NamaToko != nil {
+		updates["nama_toko"] = strings.TrimSpace(*req.NamaToko)
+	}
+	if req.DeskripsiToko != nil {
+		updates["deskripsi_toko"] = trimOrNil(*req.DeskripsiToko)
+	}
+	if req.KodePosAsal != nil {
+		updates["kode_pos_asal"] = trimOrNil(*req.KodePosAsal)
+	}
+	if req.KotaAsal != nil {
+		updates["kota_asal"] = trimOrNil(*req.KotaAsal)
+	}
+	if req.AlamatAsal != nil {
+		updates["alamat_asal"] = trimOrNil(*req.AlamatAsal)
+	}
+	if len(updates) == 0 {
+		tx.Rollback()
+		return nil, errors.New("tidak ada data yang diperbarui")
+	}
+
+	if err := tx.Model(&models.Seller{}).Where("seller_id = ?", seller.SellerID).
+		Updates(updates).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("gagal memperbarui profil toko")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("perubahan profil toko gagal disimpan")
+	}
+
+	if v, ok := updates["nama_toko"]; ok {
+		seller.NamaToko = v.(string)
+	}
+	if v, ok := updates["deskripsi_toko"]; ok {
+		seller.DeskripsiToko = v.(*string)
+	}
+	if v, ok := updates["kode_pos_asal"]; ok {
+		seller.KodePosAsal = v.(*string)
+	}
+	if v, ok := updates["kota_asal"]; ok {
+		seller.KotaAsal = v.(*string)
+	}
+	if v, ok := updates["alamat_asal"]; ok {
+		seller.AlamatAsal = v.(*string)
+	}
+
+	return &seller, nil
+}
+
+// trimOrNil mengembalikan string yang sudah di-trim, atau nil jika kosong
+// (dipakai untuk mengosongkan kolom nullable saat update).
+func trimOrNil(s string) *string {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // findSellerByUserID mengambil data toko milik user.
