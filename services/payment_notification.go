@@ -6,6 +6,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/database"
 	"github.com/ehanz12/api-SneakHub/models"
+	"gorm.io/gorm"
 )
 
 // ErrPaymentNotFound menandakan order_id pada callback tidak ada di database.
@@ -28,6 +29,15 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 		return ErrPaymentNotFound
 	}
 
+	var order models.Order
+	if err := tx.Select("status_order").Where("order_id = ?", orderID).First(&order).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrPaymentNotFound
+		}
+		return errors.New("gagal memuat data pesanan")
+	}
+
 	if grossAmount > 0 && grossAmount != payment.Jumlah {
 		tx.Rollback()
 		return errors.New("jumlah pembayaran tidak sesuai")
@@ -39,12 +49,18 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 	case "PAID":
 		updates["status_pembayaran"] = "paid"
 		updates["paid_at"] = time.Now()
-		if err := tx.Model(&models.Order{}).Where("order_id = ?", orderID).Update("status_order", "diproses").Error; err != nil {
-			tx.Rollback()
-			return errors.New("gagal memperbarui status pesanan")
+		// Status order hanya naik ke diproses jika masih pending; callback
+		// dobel/terlambat tidak boleh menurunkan order yang sudah dikirim.
+		if order.StatusOrder == "pending" {
+			if err := tx.Model(&models.Order{}).Where("order_id = ?", orderID).Update("status_order", "diproses").Error; err != nil {
+				tx.Rollback()
+				return errors.New("gagal memperbarui status pesanan")
+			}
 		}
 	case "EXPIRED", "FAILED":
-		if payment.StatusPembayaran != "expired" && payment.StatusPembayaran != "failed" {
+		// Pembatalan + restore stok hanya untuk order yang belum dibayar &
+		// masih pending; order yang sudah diproses/dikirim tidak terpengaruh.
+		if payment.StatusPembayaran != "expired" && payment.StatusPembayaran != "failed" && order.StatusOrder == "pending" {
 			if err := restoreOrderStock(tx, orderID); err != nil {
 				tx.Rollback()
 				return err

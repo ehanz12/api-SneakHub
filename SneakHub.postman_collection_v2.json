@@ -2372,7 +2372,7 @@
                                                                                "mock-settle"
                                                                            ]
                                                               },
-                                                      "description":  "Simulasikan penyelesaian pembayaran - hanya aktif jika PAYMENT_MODE=mock. TANPA auth.\nBody: order_id (wajib), status (opsional: PAID/EXPIRED/FAILED/REFUND, default PAID).\nRespons: 200 -\u003e success true + message"
+                                                      "description":  "Settle pembayaran simulasi (hanya aktif saat PAYMENT_MODE=mock).\nBody: order_id (wajib), status (opsional: PAID/EXPIRED/FAILED/REFUND, default PAID).\nEfek: PAID -\u003e order jadi diproses HANYA jika masih pending; EXPIRED/FAILED -\u003e order dibatalkan + stok dikembalikan HANYA jika masih pending. Callback yang datang setelah order diproses/dikirim/selesai TIDAK menurunkan status order."
                                                   }
                                   },
                                   {
@@ -2530,7 +2530,7 @@
                                                                                "{{order_id}}"
                                                                            ]
                                                               },
-                                                      "description":  "Update status pesanan.\nPath: order_id. Body: status_order (wajib: pending/diproses/dikirim/selesai/dibatalkan).\nCatatan: customer hanya bisa set \u0027dibatalkan\u0027 saat order masih pending. Seller hanya bisa set \u0027diproses\u0027 (dari pending) dan \u0027dibatalkan\u0027 (sebelum dikirim). Status \u0027dikirim\u0027/\u0027selesai\u0027 diatur lewat endpoint Kirim Pesanan / Konfirmasi / auto-complete, bukan lewat endpoint ini.\nMembatalkan otomatis mengembalikan stok produk.\nRespons: 200 -\u003e OrderDetailResponse"
+                                                      "description":  "Update status pesanan.\nPath: order_id. Body: status_order (wajib: pending/diproses/dikirim/selesai/dibatalkan).\nCatatan: status \u0027pending\u0027 TIDAK bisa di-set manual (hanya berlaku saat order dibuat). Customer hanya bisa set \u0027dibatalkan\u0027 saat order masih pending/diproses (belum dikirim). Seller hanya bisa set \u0027diproses\u0027 (dari pending) dan \u0027dibatalkan\u0027 (sebelum dikirim). Status \u0027dikirim\u0027/\u0027selesai\u0027 diatur lewat endpoint Kirim Pesanan / Konfirmasi / auto-complete, bukan lewat endpoint ini.\nMembatalkan otomatis mengembalikan stok produk.\nRespons: 200 -\u003e OrderDetailResponse"
                                                   }
                                   },
                                   {

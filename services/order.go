@@ -288,6 +288,10 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 		tx.Rollback()
 		return nil, errors.New("status_order tidak valid")
 	}
+	if normalized == "pending" {
+		tx.Rollback()
+		return nil, errors.New("status pending hanya berlaku saat pesanan dibuat")
+	}
 
 	if role == "customer" && normalized != "dibatalkan" {
 		tx.Rollback()

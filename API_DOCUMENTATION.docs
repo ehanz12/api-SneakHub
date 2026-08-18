@@ -606,7 +606,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 }
 ```
 
-`status`: `PAID` (order → `diproses`, stok tetap terpotong), `EXPIRED` / `FAILED` (stok **dikembalikan** & order → `dibatalkan`, idempotent terhadap callback ganda), `REFUND` (stok tidak dikembalikan karena barang sudah terkirim).
+`status`: `PAID` (order → `diproses` **hanya jika masih `pending`**, stok tetap terpotong), `EXPIRED` / `FAILED` (stok **dikembalikan** & order → `dibatalkan` **hanya jika masih `pending`** — idempotent terhadap callback ganda), `REFUND` (stok tidak dikembalikan karena barang sudah terkirim). Callback yang datang setelah order diproses/dikirim/selesai **tidak** menurunkan status order.
 
 **Mock Pay** — `200` (HTML): `GET /api/mock-pay/:order_id?amount=1650000&name=Budi` — halaman pembayaran simulasi untuk mengetes alur tanpa gateway.
 
@@ -726,7 +726,7 @@ Body kosong. Syarat: status order `dikirim`. Efek: order → `selesai`. Jika cus
 { "status_order": "dikirim" }
 ```
 
-Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`, dan **hanya saat order masih `pending`** (belum dibayar). Seller hanya boleh set `diproses` (dari `pending`) dan `dibatalkan` (sebelum dikirim). Status `dikirim`/`selesai` diatur lewat **Kirim Pesanan** / **Konfirmasi** / **auto-complete** — tidak bisa lewat endpoint ini. Membatalkan pesanan otomatis **mengembalikan stok** produk.
+Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Status `pending` **tidak bisa di-set manual** (hanya berlaku saat order dibuat). Customer hanya boleh set `dibatalkan`, dan **hanya saat order masih `pending`/`diproses`** (belum dikirim). Seller hanya boleh set `diproses` (dari `pending`) dan `dibatalkan` (sebelum dikirim). Status `dikirim`/`selesai` diatur lewat **Kirim Pesanan** / **Konfirmasi** / **auto-complete** — tidak bisa lewat endpoint ini. Membatalkan pesanan otomatis **mengembalikan stok** produk.
 
 **Review** — `201`
 
