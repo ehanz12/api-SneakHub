@@ -130,6 +130,9 @@ func ConfirmReceivedService(userID, orderID string) (*models.Order, error) {
 
 	var order models.Order
 	if err := tx.Preload("Shipment").
+		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
+			return db.Select("product_id", "nama_produk")
+		}).
 		Where("order_id = ? AND customer_id = ?", orderID, userID).
 		First(&order).Error; err != nil {
 		tx.Rollback()

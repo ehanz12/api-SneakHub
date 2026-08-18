@@ -182,7 +182,7 @@ Respons: `data.access_token` + `data.user` (user_id, nama, email, peran).
 
 **Profil Toko** — `200` / `200`
 
-`GET /api/seller/me` → data profil toko milik seller (format sama dengan respons aktivasi).
+`GET /api/seller/me` → data profil toko milik seller (format sama dengan respons aktivasi). `status_verifikasi` dikembalikan dalam format English (`VERIFIED`/`REJECTED`/`PENDING`). Field opsional (`deskripsi_toko`, `kode_pos_asal`, `kota_asal`, `alamat_asal`) **di-omit dari JSON saat NULL** — FE harus memperlakukan field yang hilang sebagai nilai kosong.
 
 `PUT /api/seller/me` — **partial update**: hanya field yang dikirim yang diubah; field dikirim kosong (`""`) akan dihapus (NULL).
 
@@ -700,7 +700,7 @@ Syarat: status order harus `diproses` (sudah dibayar). Efek: order → `dikirim`
 
 **Konfirmasi Pesanan Selesai (Customer)** — `200`
 
-Body kosong. Syarat: status order `dikirim`. Efek: order → `selesai`. Jika customer tidak mengonfirmasi, scheduler **auto-complete** otomatis menandai selesai setelah `AUTO_COMPLETE_DAYS` (default 7) hari sejak paket `sampai`.
+Body kosong. Syarat: status order `dikirim`. Efek: order → `selesai`. Respons `data` berformat **Detail Pesanan** dan memuat `items` (beserta `nama_produk`) sehingga FE bisa langsung merender form review tanpa refetch. Jika customer tidak mengonfirmasi, scheduler **auto-complete** otomatis menandai selesai setelah `AUTO_COMPLETE_DAYS` (default 7) hari sejak paket `sampai`.
 
 **Buat Pesanan Manual** — `201`
 

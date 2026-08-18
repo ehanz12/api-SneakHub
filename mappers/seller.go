@@ -76,7 +76,7 @@ func ToSellerCreate(u *models.Seller) *responses.SellerResponse {
 		UserID:           u.UserID,
 		NamaToko:         u.NamaToko,
 		DeskripsiToko:    u.DeskripsiToko,
-		StatusVerifikasi: u.StatusVerifikasi,
+		StatusVerifikasi: displaySellerStatus(u.StatusVerifikasi),
 		KodePosAsal:      u.KodePosAsal,
 		KotaAsal:         u.KotaAsal,
 		AlamatAsal:       u.AlamatAsal,
