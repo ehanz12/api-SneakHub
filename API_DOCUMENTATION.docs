@@ -468,11 +468,11 @@ Semua field opsional — hanya field yang dikirim yang diubah:
 }
 ```
 
-- Field sama dengan buat produk (`nama_produk`, `brand_id`, `category_id`, `kondisi`, `deskripsi`, `harga`, `stok`, `berat`, `condition_score`, `status_publikasi`, `ukuran_tersedia`), tapi **tidak wajib diisi**.
+- Field sama dengan buat produk (`nama_produk`, `brand_id`, `category_id`, `kondisi`, `deskripsi`, `harga`, `stok`, `berat`, `condition_score`, `status_publikasi`, `ukuran_tersedia`), tapi **tidak wajib diisi** — semua field bisa diubah sekaligus atau sebagian.
 - `deskripsi` diubah dengan mengirim string (bisa kosong `""` untuk menghapus); `condition_score` hanya diubah jika dikirim.
-- Validasi berlaku per field yang dikirim (mis. `harga` > 0, `stok` ≥ 0, `condition_score` 0–100).
+- Validasi berlaku per field yang dikirim (mis. `harga` > 0, `stok` ≥ 0, `condition_score` 0–100, `kondisi` harus `NEW`/`USED`/`REFURBISHED`).
 - **Price alert**: jika `harga` turun mencapai `target_price` wishlist user, notifikasi `price_alert` otomatis dibuat & alert dinonaktifkan. **Restock alert**: jika `stok` naik dari 0, notifikasi `restock_alert` dibuat untuk user yang memasangnya.
-- Respons: `product_id`, `harga`, `updated_at`.
+- Respons lengkap: `product_id`, `seller_id`, `nama_produk`, `brand_id`, `category_id`, `kondisi`, `deskripsi`, `harga`, `stok`, `berat`, `condition_score`, `status_publikasi`, `ukuran_tersedia[]`, `updated_at` — `kondisi` & `status_publikasi` dalam format English (`NEW`/`USED`/`REFURBISHED`, `ACTIVE`/`DRAFT`/`INACTIVE`). FE bisa memakai respons ini untuk sinkron form tanpa refetch.
 
 **Detail Produk** — `200`: seperti list + `seller_id`, `brand_id`, `category_id`, `deskripsi`, `status_publikasi`, `images[]`, plus `avg_rating` & `total_review`.
 

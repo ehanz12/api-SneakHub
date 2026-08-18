@@ -18,9 +18,20 @@ func ToProductResponse(p models.Product) responses.CreateProductResponse {
 
 func ToProductUpdateResponse(p models.Product) responses.UpdateProductResponse {
 	return responses.UpdateProductResponse{
-		ProductID: p.ProductID,
-		Harga:     p.Harga,
-		UpdatedAt: p.UpdatedAt,
+		ProductID:       p.ProductID,
+		SellerID:        p.SellerID,
+		NamaProduk:      p.NamaProduk,
+		BrandID:         p.BrandID,
+		CategoryID:      p.CategoryID,
+		Kondisi:         strings.ToUpper(p.Kondisi),
+		Deskripsi:       p.Deskripsi,
+		Harga:           p.Harga,
+		Stok:            p.Stok,
+		Berat:           p.Berat,
+		ConditionScore:  p.ConditionScore,
+		StatusPublikasi: displayProductStatus(p.StatusPublikasi),
+		UkuranTersedia:  unmarshalUkuran(p.UkuranTersedia),
+		UpdatedAt:       p.UpdatedAt,
 	}
 }
 

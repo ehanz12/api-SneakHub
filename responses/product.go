@@ -8,9 +8,20 @@ type CreateProductResponse struct {
 }
 
 type UpdateProductResponse struct {
-	ProductID string    `json:"product_id"`
-	Harga     float64   `json:"harga"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ProductID       string    `json:"product_id"`
+	SellerID        string    `json:"seller_id"`
+	NamaProduk      string    `json:"nama_produk"`
+	BrandID         string    `json:"brand_id"`
+	CategoryID      string    `json:"category_id"`
+	Kondisi         string    `json:"kondisi"`
+	Deskripsi       *string   `json:"deskripsi,omitempty"`
+	Harga           float64   `json:"harga"`
+	Stok            int       `json:"stok"`
+	Berat           int       `json:"berat"`
+	ConditionScore  *float64  `json:"condition_score"`
+	StatusPublikasi string    `json:"status_publikasi"`
+	UkuranTersedia  []string  `json:"ukuran_tersedia"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type ProductImageResponse struct {

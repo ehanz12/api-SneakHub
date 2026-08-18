@@ -18,11 +18,11 @@ import (
 // kondisi di database. Mengembalikan "" bila tidak dikenal.
 func normalizeKondisi(kondisi string) string {
 	switch strings.ToUpper(strings.TrimSpace(kondisi)) {
-	case "NEW":
+	case "NEW", "BARU":
 		return "new"
-	case "USED":
+	case "USED", "BEKAS", "SECOND":
 		return "used"
-	case "REFURBISHED":
+	case "REFURBISHED", "REKONDISI":
 		return "refurbished"
 	}
 	return ""

@@ -48,7 +48,7 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 		NamaProduk:      r.NamaProduk,
 		BrandID:         r.BrandID,
 		CategoryID:      r.CategoryID,
-		Kondisi:         r.Kondisi,
+		Kondisi:         normalizeKondisi(r.Kondisi),
 		Deskripsi:       r.Deskripsi,
 		Harga:           float64(r.Harga),
 		Stok:            r.Stok,
@@ -211,7 +211,11 @@ func UpdateProductService(userID string, productID string, r requests.UpdateProd
 	}
 
 	if r.Kondisi != nil {
-		product.Kondisi = *r.Kondisi
+		product.Kondisi = normalizeKondisi(*r.Kondisi)
+		if product.Kondisi == "" {
+			tx.Rollback()
+			return nil, errors.New("kondisi tidak valid, gunakan NEW, USED, atau REFURBISHED")
+		}
 	}
 
 	if r.Deskripsi != nil {

@@ -95,6 +95,15 @@ func (r *UpdateProductRequest) Validate() map[string]string {
 	if r.Harga != nil && *r.Harga <= 0 {
 		errs["harga"] = "harga harus lebih dari 0"
 	}
+	if r.Kondisi != nil {
+		switch strings.ToUpper(strings.TrimSpace(*r.Kondisi)) {
+		case "NEW", "BARU":
+		case "USED", "BEKAS", "SECOND":
+		case "REFURBISHED", "REKONDISI":
+		default:
+			errs["kondisi"] = "kondisi harus salah satu dari: NEW, USED, REFURBISHED"
+		}
+	}
 	if r.Deskripsi != nil && len(strings.TrimSpace(*r.Deskripsi)) < 10 {
 		errs["deskripsi"] = "deskripsi harus lebih dari 10 karakter"
 	}
