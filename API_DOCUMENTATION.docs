@@ -552,7 +552,7 @@ Minimal 1 item; `jumlah` ≥ 1. Respons: `items[{cart_item_id, product_id, jumla
 { "address_id": "uuid-alamat" }
 ```
 
-Respons berupa **array per toko**: `[{seller_id, nama_toko, berat, kota_asal, options: [{kurir, service, biaya, estimasi, is_fallback}]}]`. `is_fallback: true` berarti memakai ongkir flat Rp15.000 (toko belum set `kode_pos_asal`, `BITESHIP_API_KEY` kosong, atau layanan error). Kurir: JNE, SiCepat, AnterAja, J&T.
+Respons berupa **array per toko**: `[{seller_id, nama_toko, berat, kota_asal, options: [{kurir, service, service_code, biaya, estimasi, is_fallback}]}]`. `is_fallback: true` berarti memakai ongkir flat Rp15.000 (toko belum set `kode_pos_asal`, `BITESHIP_API_KEY` kosong, atau layanan error). Kurir: JNE, SiCepat, AnterAja, J&T. `service_code` (mis. `reg`) adalah kode tipe layanan kurir yang disimpan ke `shipment.service` untuk booking Biteship saat pengiriman.
 
 **Checkout** — `201`
 
@@ -625,6 +625,8 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 | PUT | `/api/orders/:order_id` | Semua | Update status pesanan |
 | DELETE | `/api/orders/:order_id` | Semua | Hapus pesanan |
 | POST | `/api/orders/:order_id/review` | customer | Review produk |
+| POST | `/api/orders/:order_id/confirm` | customer | Konfirmasi pesanan selesai |
+| POST | `/api/seller/orders/:order_id/ship` | seller | Kirim pesanan (resi otomatis Biteship) |
 | GET | `/api/products/:product_id/reviews` | Semua | List review & rating produk |
 
 **List Pesanan** — `200`: `?page=1&limit=10&status=pending`. Role-aware: customer → pesanan miliknya; seller → pesanan tokonya; admin → semua. Item: `[{order_id, seller_id, status_order, total_pembayaran, status_pembayaran, created_at}]` — `status_pembayaran` (pending/paid/failed/expired/refunded) dipakai FE untuk menandai pesanan yang perlu dibayar.
@@ -652,13 +654,31 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
     "gateway_reference": "uuid-order",
     "paid_at": null
   },
-  "shipment": { "shipment_id": "uuid", "kurir": "jne", "nomor_resi": null, "status_pengiriman": "menunggu", "shipped_at": null, "delivered_at": null },
+  "shipment": { "shipment_id": "uuid", "kurir": "jne", "service": "reg", "nomor_resi": null, "tracking_id": null, "tracking_history": null, "status_pengiriman": "menunggu", "shipped_at": null, "delivered_at": null },
   "created_at": "..."
 }
 ```
 
 - `payment.payment_url` selalu tersedia saat `status_pembayaran: pending` — FE memakainya untuk **melanjutkan pembayaran** (buka Snap Midtrans / checkout Tripay) ketika user sempat menutup tab.
-- `shipment` diisi setelah checkout (kurir hasil pilihan smart ongkir).
+- `shipment` diisi setelah checkout (kurir hasil pilihan smart ongkir). `service` = kode tipe layanan kurir untuk booking Biteship; `tracking_id` = waybill Biteship saat pesanan dikirim; `tracking_history` = riwayat tracking terakhir dari Biteship (di-update otomatis oleh scheduler).
+
+**Kirim Pesanan (Seller)** — `200`
+
+```json
+{ }
+```
+
+Body kosong = **booking kurir otomatis** ke Biteship (resi dibuat otomatis, `tracking_id` tersimpan untuk tracking). Jika Biteship tidak tersedia (key kosong / data toko belum lengkap / layanan error), kirim resi manual:
+
+```json
+{ "nomor_resi": "JNE123456789" }
+```
+
+Syarat: status order harus `diproses` (sudah dibayar). Efek: order → `dikirim`, shipment → `dikirim`, `shipped_at` terisi, `nomor_resi` terisi, customer mendapat notifikasi. Booking Biteship butuh `alamat_asal` + `kode_pos_asal` + nomor telepon seller dan `service` kurir terisi.
+
+**Konfirmasi Pesanan Selesai (Customer)** — `200`
+
+Body kosong. Syarat: status order `dikirim`. Efek: order → `selesai`. Jika customer tidak mengonfirmasi, scheduler **auto-complete** otomatis menandai selesai setelah `AUTO_COMPLETE_DAYS` (default 7) hari sejak paket `sampai`.
 
 **Buat Pesanan Manual** — `201`
 
@@ -684,7 +704,7 @@ Header: `X-Callback-Event: payment_status`, `X-Callback-Signature: <HMAC-SHA256 
 { "status_order": "dikirim" }
 ```
 
-Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`, dan **hanya saat order masih `pending`** (belum dibayar). Membatalkan pesanan otomatis **mengembalikan stok** produk.
+Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya boleh set `dibatalkan`, dan **hanya saat order masih `pending`** (belum dibayar). Seller hanya boleh set `diproses` (dari `pending`) dan `dibatalkan` (sebelum dikirim). Status `dikirim`/`selesai` diatur lewat **Kirim Pesanan** / **Konfirmasi** / **auto-complete** — tidak bisa lewat endpoint ini. Membatalkan pesanan otomatis **mengembalikan stok** produk.
 
 **Review** — `201`
 
@@ -716,10 +736,11 @@ Nilai: `pending`, `diproses`, `dikirim`, `selesai`, `dibatalkan`. Customer hanya
 4. **Tambah ke cart** → `cart_item_id`.
 5. **Buat alamat** → `address_id`.
 6. **Checkout** (`metode_pembayaran: EWALLET`) → dapat `order_id` + `payment_url`.
-7. **Mock settle** `{ "order_id": "...", "status": "PAID" }` → order lunas.
-8. **Update status order** → `diproses` → `dikirim` → `selesai`.
-9. **Review** produk.
-10. Cek **notifikasi** & **dashboard seller** untuk melihat dampak transaksi.
+7. **Mock settle** `{ "order_id": "...", "status": "PAID" }` → order lunas (`diproses`).
+8. **Seller kirim pesanan** → `POST /api/seller/orders/:order_id/ship` (resi otomatis Biteship / manual) → `dikirim`.
+9. **Customer konfirmasi terima** → `POST /api/orders/:order_id/confirm` → `selesai` (atau otomatis setelah 7 hari paket sampai).
+10. **Review** produk.
+11. Cek **notifikasi** & **dashboard seller** untuk melihat dampak transaksi.
 
 > Jika user menutup tab sebelum membayar: `GET /api/orders/:order_id` → `payment.payment_url` (status `pending`) → buka lagi halaman pembayaran. Jika status `pending` dan user tidak jadi bayar, `PUT /api/orders/:order_id` dengan `{"status_order": "dibatalkan"}` → stok otomatis dikembalikan.
 

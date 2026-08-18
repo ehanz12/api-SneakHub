@@ -10,6 +10,7 @@ func SetupSellerRoute(api fiber.Router) {
 	seller := api.Group("/seller")
 	seller.Get("/products", middleware.SellerOnly, handlers.GetSellerProductsHandler)
 	seller.Get("/orders", middleware.SellerOnly, handlers.GetSellerOrdersHandler)
+	seller.Post("/orders/:order_id/ship", middleware.SellerOnly, handlers.ShipOrderHandler)
 	seller.Get("/dashboard", middleware.SellerOnly, handlers.GetSellerDashboardHandler)
 
 	sellerUser := api.Group("/users")

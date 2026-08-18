@@ -39,13 +39,22 @@ type OrderPaymentResponse struct {
 	PaidAt               *time.Time `json:"paid_at,omitempty"`
 }
 
+type ShipmentTrackingEventResponse struct {
+	Note      string `json:"note"`
+	Status    string `json:"status"`
+	UpdatedAt string `json:"updated_at"`
+}
+
 type OrderShipmentResponse struct {
-	ShipmentID       string     `json:"shipment_id"`
-	Kurir            string     `json:"kurir"`
-	NomorResi        *string    `json:"nomor_resi,omitempty"`
-	StatusPengiriman string     `json:"status_pengiriman"`
-	ShippedAt        *time.Time `json:"shipped_at,omitempty"`
-	DeliveredAt      *time.Time `json:"delivered_at,omitempty"`
+	ShipmentID       string                         `json:"shipment_id"`
+	Kurir            string                         `json:"kurir"`
+	Service          *string                        `json:"service,omitempty"`
+	NomorResi        *string                        `json:"nomor_resi,omitempty"`
+	TrackingID       *string                        `json:"tracking_id,omitempty"`
+	TrackingHistory  []ShipmentTrackingEventResponse `json:"tracking_history,omitempty"`
+	StatusPengiriman string                         `json:"status_pengiriman"`
+	ShippedAt        *time.Time                     `json:"shipped_at,omitempty"`
+	DeliveredAt      *time.Time                     `json:"delivered_at,omitempty"`
 }
 
 type OrderDetailResponse struct {

@@ -20,11 +20,12 @@ const biteshipBaseURL = "https://api.biteship.com"
 
 // ShippingOption adalah satu pilihan kurir hasil cek ongkir.
 type ShippingOption struct {
-	Kurir      string  `json:"kurir"`
-	Service    string  `json:"service"`
-	Biaya      float64 `json:"biaya"`
-	Estimasi   string  `json:"estimasi"`
-	IsFallback bool    `json:"is_fallback"`
+	Kurir       string  `json:"kurir"`
+	Service     string  `json:"service"`
+	ServiceCode string  `json:"service_code,omitempty"`
+	Biaya       float64 `json:"biaya"`
+	Estimasi    string  `json:"estimasi"`
+	IsFallback  bool    `json:"is_fallback"`
 }
 
 // SellerShippingRates adalah daftar pilihan ongkir untuk satu toko.
@@ -49,6 +50,7 @@ type biteshipRateResponse struct {
 	Rates   []struct {
 		CourierName        string  `json:"courier_name"`
 		CourierServiceName string  `json:"courier_service_name"`
+		CourierServiceCode string  `json:"courier_service_code"`
 		Duration           string  `json:"duration"`
 		ShippingAmount     float64 `json:"shipping_amount"`
 	} `json:"rates"`
@@ -117,10 +119,11 @@ func fetchBiteshipRates(originPostalCode, destinationPostalCode string, weight i
 	options := make([]ShippingOption, 0, len(result.Rates))
 	for _, rate := range result.Rates {
 		options = append(options, ShippingOption{
-			Kurir:    strings.ToLower(rate.CourierName),
-			Service:  rate.CourierServiceName,
-			Biaya:    rate.ShippingAmount,
-			Estimasi: rate.Duration,
+			Kurir:       strings.ToLower(rate.CourierName),
+			Service:     rate.CourierServiceName,
+			ServiceCode: strings.ToLower(rate.CourierServiceCode),
+			Biaya:       rate.ShippingAmount,
+			Estimasi:    rate.Duration,
 		})
 	}
 	if len(options) == 0 {
@@ -206,22 +209,23 @@ func flatShippingOption() []ShippingOption {
 // resolveShippingCostForGroup menghitung biaya ongkir untuk satu grup toko
 // pada saat checkout. Jika request menentukan kurir, kurir tersebut dipakai
 // (dicocokkan dengan nama kurir dari Biteship); jika tidak, kurir termurah
-// yang dipilih. Mengembalikan biaya ongkir dan nama kurir.
-func resolveShippingCostForGroup(tx *gorm.DB, items []models.CartItem, destinationKodePos string, requested []requests.CheckoutShippingRequest) (float64, string) {
+// yang dipilih. Mengembalikan biaya ongkir, nama kurir, dan kode layanan
+// kurir (courier type untuk booking Biteship).
+func resolveShippingCostForGroup(tx *gorm.DB, items []models.CartItem, destinationKodePos string, requested []requests.CheckoutShippingRequest) (float64, string, string) {
 	sellerID := items[0].Product.SellerID
 
 	var store models.Seller
 	if err := tx.Select("seller_id", "kode_pos_asal").
 		Where("seller_id = ?", sellerID).First(&store).Error; err != nil {
-		return BiayaPengirimanFlat, "flat"
+		return BiayaPengirimanFlat, "flat", ""
 	}
 	if config.AppConfig.BiteshipAPIKey == "" || store.KodePosAsal == nil || strings.TrimSpace(*store.KodePosAsal) == "" {
-		return BiayaPengirimanFlat, "flat"
+		return BiayaPengirimanFlat, "flat", ""
 	}
 
 	options, err := fetchBiteshipRates(*store.KodePosAsal, destinationKodePos, hitungBeratGroup(items))
 	if err != nil {
-		return BiayaPengirimanFlat, "flat"
+		return BiayaPengirimanFlat, "flat", ""
 	}
 
 	kodeKurir := ""
@@ -236,7 +240,7 @@ func resolveShippingCostForGroup(tx *gorm.DB, items []models.CartItem, destinati
 		for _, opt := range options {
 			if strings.Contains(strings.ToLower(opt.Kurir), kodeKurir) ||
 				strings.Contains(kodeKurir, strings.ToLower(opt.Kurir)) {
-				return opt.Biaya, opt.Kurir
+				return opt.Biaya, opt.Kurir, opt.ServiceCode
 			}
 		}
 	}
@@ -247,5 +251,5 @@ func resolveShippingCostForGroup(tx *gorm.DB, items []models.CartItem, destinati
 			cheapest = opt
 		}
 	}
-	return cheapest.Biaya, cheapest.Kurir
+	return cheapest.Biaya, cheapest.Kurir, cheapest.ServiceCode
 }

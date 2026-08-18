@@ -14,4 +14,5 @@ func SetupOrderRoute(api fiber.Router) {
 	order.Put("/:order_id", middleware.AllRoles, handlers.UpdateOrderHandler)
 	order.Delete("/:order_id", middleware.AllRoles, handlers.DeleteOrderHandler)
 	order.Post("/:order_id/review", middleware.CustomerSellerOnly, handlers.CreateReviewHandler)
+	order.Post("/:order_id/confirm", middleware.CustomerOnly, handlers.ConfirmReceivedHandler)
 }

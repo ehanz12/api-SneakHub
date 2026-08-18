@@ -56,10 +56,19 @@ func ToOrderShipmentResponse(s *models.Shipment) *responses.OrderShipmentRespons
 	if s == nil || s.ShipmentID == "" {
 		return nil
 	}
+
+	var history []responses.ShipmentTrackingEventResponse
+	if len(s.TrackingHistory) > 0 {
+		_ = json.Unmarshal(s.TrackingHistory, &history)
+	}
+
 	return &responses.OrderShipmentResponse{
 		ShipmentID:       s.ShipmentID,
 		Kurir:            s.Kurir,
+		Service:          s.Service,
 		NomorResi:        s.NomorResi,
+		TrackingID:       s.TrackingID,
+		TrackingHistory:  history,
 		StatusPengiriman: s.StatusPengiriman,
 		ShippedAt:        s.ShippedAt,
 		DeliveredAt:      s.DeliveredAt,

@@ -54,7 +54,7 @@ func buildAlamatSnapshot(namaPenerima, nomorTelepon, alamat, kota, provinsi, kod
 	return json.Marshal(payload)
 }
 
-func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address, addressID string, metode string, items []models.CartItem, shippingFee float64, kurir string) (*models.Order, error) {
+func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address, addressID string, metode string, items []models.CartItem, shippingFee float64, kurir, service string) (*models.Order, error) {
 	subtotal := 0.0
 	for _, item := range items {
 		subtotal += item.HargaSaatDitambahkan * float64(item.Jumlah)
@@ -81,9 +81,15 @@ func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address
 		return nil, errors.New("gagal membuat pesanan")
 	}
 
+	var servicePtr *string
+	if service != "" {
+		servicePtr = &service
+	}
+
 	if err := tx.Create(&models.Shipment{
 		OrderID: order.OrderID,
 		Kurir:   kurir,
+		Service: servicePtr,
 	}).Error; err != nil {
 		return nil, errors.New("gagal menyimpan data pengiriman")
 	}
@@ -222,8 +228,8 @@ func CheckoutService(customerID string, r requests.CheckoutRequest) ([]models.Or
 	orders := make([]models.Order, 0, len(groups))
 
 	for _, items := range groups {
-		shippingFee, kurir := resolveShippingCostForGroup(tx, items, address.KodePos, r.Pengiriman)
-		order, err := createOrderForSeller(tx, customerID, address, address.AddressID, r.MetodePembayaran, items, shippingFee, kurir)
+		shippingFee, kurir, service := resolveShippingCostForGroup(tx, items, address.KodePos, r.Pengiriman)
+		order, err := createOrderForSeller(tx, customerID, address, address.AddressID, r.MetodePembayaran, items, shippingFee, kurir, service)
 		if err != nil {
 			tx.Rollback()
 			return nil, err

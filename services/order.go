@@ -235,6 +235,14 @@ func CreateOrderService(userID, role string, r requests.CreateOrderRequest) (*mo
 		}
 	}
 
+	if err := tx.Create(&models.Shipment{
+		OrderID: order.OrderID,
+		Kurir:   "flat",
+	}).Error; err != nil {
+		tx.Rollback()
+		return nil, errors.New("gagal menyimpan data pengiriman")
+	}
+
 	var customer models.User
 	if err := tx.Select("nama", "email", "nomor_telepon").Where("user_id = ?", customerID).First(&customer).Error; err != nil {
 		tx.Rollback()
@@ -285,10 +293,27 @@ func UpdateOrderStatusService(userID, role, orderID, status string) (*models.Ord
 		tx.Rollback()
 		return nil, errors.New("customer hanya dapat membatalkan pesanan")
 	}
-	if normalized == "dibatalkan" {
-		if order.StatusOrder != "pending" {
+	if role == "seller" {
+		switch normalized {
+		case "diproses":
+			if order.StatusOrder != "pending" {
+				tx.Rollback()
+				return nil, errors.New("pesanan hanya dapat diproses dari status pending")
+			}
+		case "dibatalkan":
+			if order.StatusOrder != "pending" && order.StatusOrder != "diproses" {
+				tx.Rollback()
+				return nil, errors.New("pesanan hanya dapat dibatalkan sebelum dikirim")
+			}
+		case "dikirim", "selesai":
 			tx.Rollback()
-			return nil, errors.New("pesanan hanya dapat dibatalkan sebelum pembayaran")
+			return nil, errors.New("status dikirim/selesai diatur lewat endpoint pengiriman atau konfirmasi")
+		}
+	}
+	if normalized == "dibatalkan" {
+		if order.StatusOrder != "pending" && order.StatusOrder != "diproses" {
+			tx.Rollback()
+			return nil, errors.New("pesanan hanya dapat dibatalkan sebelum dikirim")
 		}
 		if err := restoreOrderStock(tx, orderID); err != nil {
 			tx.Rollback()

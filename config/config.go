@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -30,6 +31,9 @@ type Config struct {
 	MidtransSandbox   bool
 
 	BiteshipAPIKey string
+
+	ShippingPollMinutes int
+	AutoCompleteDays    int
 }
 
 // variable dari struct
@@ -64,7 +68,24 @@ func LoadEnv() {
 		MidtransSandbox:   os.Getenv("MIDTRANS_IS_SANDBOX") == "true",
 
 		BiteshipAPIKey: os.Getenv("BITESHIP_API_KEY"),
+
+		ShippingPollMinutes: parseIntEnv("SHIPPING_POLL_MINUTES", 30),
+		AutoCompleteDays:    parseIntEnv("AUTO_COMPLETE_DAYS", 7),
 	}
+}
+
+// parseIntEnv membaca env bertipe integer dengan nilai default jika kosong
+// atau tidak valid.
+func parseIntEnv(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return fallback
+	}
+	return n
 }
 
 func normalizePaymentMode(mode string) string {

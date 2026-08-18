@@ -14,6 +14,7 @@ import (
 	"github.com/ehanz12/api-SneakHub/config"
 	"github.com/ehanz12/api-SneakHub/database"
 	"github.com/ehanz12/api-SneakHub/routes"
+	"github.com/ehanz12/api-SneakHub/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
@@ -24,6 +25,7 @@ func main() {
 
 	// connect to database
 	database.ConnectDB()
+	services.StartShippingScheduler()
 	app := fiber.New()
 
 	corsOrigins := config.AppConfig.CORSOrigins
