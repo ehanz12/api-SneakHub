@@ -39,8 +39,6 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "invalid user_id claim"})
 		}
 
-		// Ambil peran terbaru dari database agar perubahan role (mis. admin
-		// mengubah customer menjadi seller) langsung aktif tanpa login ulang.
 		var user models.User
 		if err := database.DB.Select("peran", "status_akun").
 			Where("user_id = ?", userID).First(&user).Error; err != nil {
@@ -51,7 +49,6 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 		}
 		role := user.Peran
 
-		// Cek apakah role ada di allowedRoles
 		roleAllowed := false
 		for _, r := range allowedRoles {
 			if r == role {
@@ -70,12 +67,11 @@ func AuthMiddleware(allowedRoles ...string) fiber.Handler {
 	}
 }
 
-// Shortcut middleware untuk kemudahan pakai
 var (
-	AllRoles          = AuthMiddleware("customer", "seller", "admin")
-	CustomerOnly      = AuthMiddleware("customer")
+	AllRoles           = AuthMiddleware("customer", "seller", "admin")
+	CustomerOnly       = AuthMiddleware("customer")
 	CustomerSellerOnly = AuthMiddleware("customer", "seller")
-	AdminOnly         = AuthMiddleware("admin")
-	SellerOnly        = AuthMiddleware("seller")
-	AdminSellerOnly   = AuthMiddleware("seller", "admin")
+	AdminOnly          = AuthMiddleware("admin")
+	SellerOnly         = AuthMiddleware("seller")
+	AdminSellerOnly    = AuthMiddleware("seller", "admin")
 )

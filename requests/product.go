@@ -70,8 +70,6 @@ func (r *CreateProduct) Validate() map[string]string {
 	return errs
 }
 
-// UpdateProductRequest untuk update parsial: hanya field yang dikirim
-// (tidak nil) yang akan diubah. Deskripsi bisa dikosongkan dengan "".
 type UpdateProductRequest struct {
 	NamaProduk      *string   `json:"nama_produk"`
 	BrandID         *string   `json:"brand_id"`

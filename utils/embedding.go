@@ -18,7 +18,6 @@ const (
 	embeddingBlock = 8
 )
 
-// DecodeImage mendeteksi tipe gambar (JPEG/PNG/WebP) lalu men-decodenya menjadi image.Image.
 func DecodeImage(data []byte) (image.Image, error) {
 	contentType := http.DetectContentType(data)
 	switch contentType {
@@ -32,9 +31,6 @@ func DecodeImage(data []byte) (image.Image, error) {
 	}
 }
 
-// ComputeImageEmbedding menghitung perceptual hash (pHash) berbasis DCT 2D.
-// Gambar di-resize ke 32x32 grayscale, lalu 64 koefisien frekuensi rendah
-// (blok 8x8) diambil sebagai vektor embedding dan di-L2 normalize.
 func ComputeImageEmbedding(img image.Image) ([]float64, error) {
 	gray := resizeToGray(img)
 	if gray == nil {
@@ -54,7 +50,6 @@ func ComputeImageEmbedding(img image.Image) ([]float64, error) {
 	return embedding, nil
 }
 
-// CosineSimilarity menghitung kemiripan dua vektor (0 = beda total, 1 = identik).
 func CosineSimilarity(a, b []float64) float64 {
 	if len(a) == 0 || len(a) != len(b) {
 		return 0
@@ -71,7 +66,6 @@ func CosineSimilarity(a, b []float64) float64 {
 	return dot / (math.Sqrt(na) * math.Sqrt(nb))
 }
 
-// resizeToGray me-resize gambar menjadi 32x32 grayscale pakai interpolasi bilinear.
 func resizeToGray(img image.Image) [][]float64 {
 	bounds := img.Bounds()
 	srcW := bounds.Dx()
@@ -123,7 +117,6 @@ func grayAt(img image.Image, b image.Rectangle, x, y int) float64 {
 	return 0.299*float64(r>>8) + 0.587*float64(g>>8) + 0.114*float64(bl>>8)
 }
 
-// dct2D transformasi DCT-II orthonormal (separable: baris lalu kolom).
 func dct2D(pixels [][]float64) [][]float64 {
 	n := len(pixels)
 	tmp := make([][]float64, n)
@@ -131,7 +124,6 @@ func dct2D(pixels [][]float64) [][]float64 {
 		tmp[i] = make([]float64, n)
 	}
 
-	// transformasi per baris
 	for y := 0; y < n; y++ {
 		for v := 0; v < n; v++ {
 			sum := 0.0
@@ -147,7 +139,6 @@ func dct2D(pixels [][]float64) [][]float64 {
 		result[i] = make([]float64, n)
 	}
 
-	// transformasi per kolom
 	for u := 0; u < n; u++ {
 		for v := 0; v < n; v++ {
 			sum := 0.0

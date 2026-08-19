@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// findWishlist mengambil wishlist milik customer untuk sebuah produk.
 func findWishlist(customerID, productID string) (*models.Wishlist, error) {
 	var wishlist models.Wishlist
 	if err := database.DB.Where("customer_id = ? AND product_id = ?", customerID, productID).
@@ -18,8 +17,6 @@ func findWishlist(customerID, productID string) (*models.Wishlist, error) {
 	return &wishlist, nil
 }
 
-// GetWishlistService mengambil semua wishlist customer beserta info produk,
-// sekaligus menyegarkan status stok terakhir dari produk.
 func GetWishlistService(customerID string) ([]models.Wishlist, error) {
 	var wishlists []models.Wishlist
 	if err := database.DB.
@@ -52,7 +49,6 @@ func GetWishlistService(customerID string) ([]models.Wishlist, error) {
 	return wishlists, nil
 }
 
-// CreateWishlistService menambahkan produk ke wishlist customer.
 func CreateWishlistService(customerID, productID string) (*models.Wishlist, error) {
 	var product models.Product
 	if err := database.DB.Select("product_id", "stok", "status_publikasi").
@@ -79,7 +75,6 @@ func CreateWishlistService(customerID, productID string) (*models.Wishlist, erro
 	return &wishlist, nil
 }
 
-// DeleteWishlistService menghapus produk dari wishlist customer.
 func DeleteWishlistService(customerID, productID string) error {
 	res := database.DB.Where("customer_id = ? AND product_id = ?", customerID, productID).
 		Delete(&models.Wishlist{})
@@ -92,7 +87,6 @@ func DeleteWishlistService(customerID, productID string) error {
 	return nil
 }
 
-// SetPriceAlertService mengaktifkan price alert dengan target harga.
 func SetPriceAlertService(customerID, productID string, targetPrice *float64) (*models.Wishlist, error) {
 	wishlist, err := findWishlist(customerID, productID)
 	if err != nil {
@@ -111,7 +105,6 @@ func SetPriceAlertService(customerID, productID string, targetPrice *float64) (*
 	return wishlist, nil
 }
 
-// DisablePriceAlertService menonaktifkan price alert wishlist.
 func DisablePriceAlertService(customerID, productID string) error {
 	wishlist, err := findWishlist(customerID, productID)
 	if err != nil {
@@ -128,7 +121,6 @@ func DisablePriceAlertService(customerID, productID string) error {
 	return nil
 }
 
-// SetRestockAlertService mengaktifkan restock alert wishlist.
 func SetRestockAlertService(customerID, productID string) (*models.Wishlist, error) {
 	wishlist, err := findWishlist(customerID, productID)
 	if err != nil {
@@ -143,7 +135,6 @@ func SetRestockAlertService(customerID, productID string) (*models.Wishlist, err
 	return wishlist, nil
 }
 
-// DisableRestockAlertService menonaktifkan restock alert wishlist.
 func DisableRestockAlertService(customerID, productID string) error {
 	wishlist, err := findWishlist(customerID, productID)
 	if err != nil {

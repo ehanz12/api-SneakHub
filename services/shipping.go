@@ -18,7 +18,6 @@ import (
 
 const biteshipBaseURL = "https://api.biteship.com"
 
-// ShippingOption adalah satu pilihan kurir hasil cek ongkir.
 type ShippingOption struct {
 	Kurir       string  `json:"kurir"`
 	Service     string  `json:"service"`
@@ -28,7 +27,6 @@ type ShippingOption struct {
 	IsFallback  bool    `json:"is_fallback"`
 }
 
-// SellerShippingRates adalah daftar pilihan ongkir untuk satu toko.
 type SellerShippingRates struct {
 	SellerID string           `json:"seller_id"`
 	NamaToko string           `json:"nama_toko"`
@@ -56,7 +54,6 @@ type biteshipRateResponse struct {
 	} `json:"rates"`
 }
 
-// hitungBeratGroup menjumlahkan berat (gram) seluruh item dalam satu grup toko.
 func hitungBeratGroup(items []models.CartItem) int {
 	total := 0
 	for _, item := range items {
@@ -65,7 +62,6 @@ func hitungBeratGroup(items []models.CartItem) int {
 	return total
 }
 
-// fetchBiteshipRates memanggil API Biteship untuk mendapatkan daftar ongkir.
 func fetchBiteshipRates(originPostalCode, destinationPostalCode string, weight int) ([]ShippingOption, error) {
 	apiKey := config.AppConfig.BiteshipAPIKey
 	if strings.TrimSpace(apiKey) == "" {
@@ -132,10 +128,6 @@ func fetchBiteshipRates(originPostalCode, destinationPostalCode string, weight i
 	return options, nil
 }
 
-// GetShippingRatesService menghitung ongkir setiap toko dari cart user
-// berdasarkan berat produk, kode pos asal toko, dan kode pos tujuan.
-// Jika Biteship tidak tersedia (key kosong / kode pos asal belum diisi /
-// error), memakai ongkir flat sebagai fallback.
 func GetShippingRatesService(customerID, addressID string) ([]SellerShippingRates, error) {
 	var cart models.Cart
 	if err := database.DB.
@@ -195,7 +187,6 @@ func GetShippingRatesService(customerID, addressID string) ([]SellerShippingRate
 	return result, nil
 }
 
-// flatShippingOption membuat opsi ongkir flat sebagai fallback.
 func flatShippingOption() []ShippingOption {
 	return []ShippingOption{{
 		Kurir:      "flat",
@@ -206,11 +197,6 @@ func flatShippingOption() []ShippingOption {
 	}}
 }
 
-// resolveShippingCostForGroup menghitung biaya ongkir untuk satu grup toko
-// pada saat checkout. Jika request menentukan kurir, kurir tersebut dipakai
-// (dicocokkan dengan nama kurir dari Biteship); jika tidak, kurir termurah
-// yang dipilih. Mengembalikan biaya ongkir, nama kurir, dan kode layanan
-// kurir (courier type untuk booking Biteship).
 func resolveShippingCostForGroup(tx *gorm.DB, items []models.CartItem, destinationKodePos string, requested []requests.CheckoutShippingRequest) (float64, string, string) {
 	sellerID := items[0].Product.SellerID
 

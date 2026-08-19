@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// fungsi untuk generate token JWT
 func GenerateJWT(userID string, role string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
@@ -18,7 +17,7 @@ func GenerateJWT(userID string, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"role":    role,
-		"exp":     jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)), // token berlaku selama 7 hari
+		"exp":     jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))

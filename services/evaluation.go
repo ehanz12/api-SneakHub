@@ -11,12 +11,10 @@ import (
 	"github.com/ehanz12/api-SneakHub/responses"
 )
 
-// fptr membuat pointer float64.
 func fptr(f float64) *float64 {
 	return &f
 }
 
-// fval mengembalikan nilai pointer float64 atau fallback.
 func fval(v *float64, fallback float64) float64 {
 	if v == nil {
 		return fallback
@@ -24,8 +22,6 @@ func fval(v *float64, fallback float64) float64 {
 	return *v
 }
 
-// CreateConditionScoreService menghitung skor akhir kondisi produk
-// (rata-rata tertimbang) lalu menyimpannya (upsert) ke condition_scores.
 func CreateConditionScoreService(userID, role, productID string, r requests.ConditionScoreRequest) (*models.ConditionScore, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -102,7 +98,6 @@ func CreateConditionScoreService(userID, role, productID string, r requests.Cond
 	return &cs, nil
 }
 
-// GetConditionScoreService mengambil condition score sebuah produk.
 func GetConditionScoreService(productID string) (*models.ConditionScore, error) {
 	var cs models.ConditionScore
 	if err := database.DB.Where("product_id = ?", productID).First(&cs).Error; err != nil {
@@ -111,8 +106,6 @@ func GetConditionScoreService(productID string) (*models.ConditionScore, error) 
 	return &cs, nil
 }
 
-// GetSellerTrustScoreService mengambil seller trust score; jika belum
-// tercatat, dihitung langsung dari order dan review.
 func GetSellerTrustScoreService(sellerID string) (*responses.SellerTrustScoreResponse, error) {
 	var seller models.Seller
 	if err := database.DB.Select("seller_id", "seller_trust_score").

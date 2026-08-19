@@ -12,10 +12,6 @@ import (
 	"gorm.io/datatypes"
 )
 
-// StartShippingScheduler menjalankan background job pengiriman:
-// 1. polling tracking Biteship untuk shipment yang masih berjalan,
-// 2. auto-complete pesanan yang sudah 'sampai' lebih dari batas hari
-//    (AUTO_COMPLETE_DAYS, default 7 hari) tanpa konfirmasi customer.
 func StartShippingScheduler() {
 	interval := config.AppConfig.ShippingPollMinutes
 	if interval <= 0 {
@@ -32,8 +28,6 @@ func StartShippingScheduler() {
 	log.Println("👀 SHIPPING SCHEDULER STARTED")
 }
 
-// pollShipmentTracking memperbarui status_pengiriman shipment dari tracking
-// Biteship untuk semua shipment yang punya tracking_id dan belum sampai.
 func pollShipmentTracking() {
 	var shipments []models.Shipment
 	if err := database.DB.
@@ -96,8 +90,6 @@ func pollShipmentTracking() {
 	}
 }
 
-// autoCompleteOrders menandai pesanan selesai secara otomatis jika
-// shipment sudah 'sampai' lebih dari batas hari tanpa konfirmasi customer.
 func autoCompleteOrders() {
 	days := config.AppConfig.AutoCompleteDays
 	if days <= 0 {

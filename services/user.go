@@ -128,7 +128,6 @@ func UpdateUserService(userID string, req requests.UpdateUserRequest) (*models.U
 		return nil, errors.New("gagal commit")
 	}
 
-	// Ambil data terbaru setelah update.
 	if err := database.DB.Select("user_id", "nomor_telepon", "nama", "preferensi_ukuran", "brand_favorit").
 		Where("user_id = ?", userID).
 		First(&user).Error; err != nil {

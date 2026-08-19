@@ -11,10 +11,10 @@ func SetupRoutes(app *fiber.App) {
 	api := app.Group("/api")
 
 	apiLimiter := limiter.New(limiter.Config{
-		Max:        200,             // Maksimal request
-		Expiration: 1 * time.Minute, // Durasi limit
+		Max:        200,
+		Expiration: 1 * time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
-			return c.IP() // Berdasarkan alamat IP klien
+			return c.IP()
 		},
 		LimitReached: func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{

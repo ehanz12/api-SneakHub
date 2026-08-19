@@ -68,15 +68,12 @@ func CreateReviewService(customerID, orderID string, r requests.CreateReviewRequ
 	return &review, nil
 }
 
-// reviewQueryWithCustomer menambahkan preload data customer ke query review.
 func reviewQueryWithCustomer(db *gorm.DB) *gorm.DB {
 	return db.Preload("Customer", func(db *gorm.DB) *gorm.DB {
 		return db.Select("user_id", "nama")
 	})
 }
 
-// GetProductReviewsService mengambil daftar review sebuah produk beserta
-// rata-rata rating dan total review.
 func GetProductReviewsService(productID string, page, limit int) ([]models.Review, float64, int64, error) {
 	var total int64
 	if err := database.DB.Model(&models.Review{}).
@@ -103,8 +100,6 @@ func GetProductReviewsService(productID string, page, limit int) ([]models.Revie
 	return reviews, avg, total, nil
 }
 
-// GetSellerReviewsService mengambil daftar review seluruh produk milik
-// sebuah toko beserta rata-rata rating.
 func GetSellerReviewsService(sellerID string, page, limit int) ([]models.Review, float64, int64, error) {
 	var sellerCheck int64
 	if err := database.DB.Model(&models.Seller{}).

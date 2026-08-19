@@ -8,8 +8,6 @@ import (
 	"github.com/ehanz12/api-SneakHub/services"
 )
 
-// displayProductStatus memetakan nilai enum database ke alias Inggris
-// yang dipakai pada respons API.
 func displayProductStatus(status string) string {
 	switch status {
 	case "aktif":
@@ -24,8 +22,6 @@ func displayProductStatus(status string) string {
 	return strings.ToUpper(status)
 }
 
-// displayUserStatus memetakan nilai enum database ke alias Inggris
-// yang dipakai pada respons API.
 func displayUserStatus(status string) string {
 	switch status {
 	case "aktif":
@@ -38,8 +34,6 @@ func displayUserStatus(status string) string {
 	return strings.ToUpper(status)
 }
 
-// displayOrderStatus memetakan nilai enum status_order database
-// ke alias Inggris yang dipakai pada respons API.
 func displayOrderStatus(status string) string {
 	switch status {
 	case "pending":
@@ -56,8 +50,6 @@ func displayOrderStatus(status string) string {
 	return strings.ToUpper(status)
 }
 
-// displaySellerStatus memetakan nilai enum status_verifikasi database
-// ke alias Inggris yang dipakai pada respons API.
 func displaySellerStatus(status string) string {
 	switch status {
 	case "pending":

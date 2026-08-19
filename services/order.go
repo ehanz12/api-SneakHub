@@ -10,9 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// orderScopeQuery membatasi query order berdasarkan peran pemanggil:
-// customer hanya melihat order miliknya, seller hanya order tokonya,
-// admin melihat semua.
 func orderScopeQuery(db *gorm.DB, userID, role string) (*gorm.DB, error) {
 	switch role {
 	case "customer":
@@ -28,8 +25,6 @@ func orderScopeQuery(db *gorm.DB, userID, role string) (*gorm.DB, error) {
 	}
 }
 
-// restoreOrderStock mengembalikan stok seluruh produk pada sebuah pesanan.
-// Dipakai saat pesanan dibatalkan atau pembayaran expired/failed.
 func restoreOrderStock(tx *gorm.DB, orderID string) error {
 	var items []models.OrderItem
 	if err := tx.Select("product_id", "jumlah").Where("order_id = ?", orderID).Find(&items).Error; err != nil {
@@ -45,8 +40,6 @@ func restoreOrderStock(tx *gorm.DB, orderID string) error {
 	return nil
 }
 
-// normalizeOrderStatus memetakan alias status (mis. COMPLETED) ke nilai
-// enum status_order di database. Mengembalikan "" bila tidak dikenal.
 func normalizeOrderStatus(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "PENDING":

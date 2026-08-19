@@ -10,9 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// mapMidtransStatus memetakan transaction_status/fraud_status Midtrans
-// ke status internal (PAID/EXPIRED/FAILED/REFUND). Status yang belum final
-// (pending, authorize, dst) mengembalikan ok=false sehingga diabaikan.
 func mapMidtransStatus(txStatus, fraudStatus string) (string, bool) {
 	switch strings.ToLower(strings.TrimSpace(txStatus)) {
 	case "settlement":

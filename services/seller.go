@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// normalizeProductStatus memetakan alias status publikasi (mis. ACTIVE)
-// ke nilai enum status_publikasi di database. Mengembalikan "" bila tidak dikenal.
 func normalizeProductStatus(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "ACTIVE", "AKTIF":
@@ -26,8 +24,6 @@ func normalizeProductStatus(status string) string {
 	return ""
 }
 
-// normalizeUserStatus memetakan alias status akun (mis. SUSPENDED)
-// ke nilai enum status_akun di database. Mengembalikan "" bila tidak dikenal.
 func normalizeUserStatus(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "ACTIVE", "AKTIF":
@@ -40,8 +36,6 @@ func normalizeUserStatus(status string) string {
 	return ""
 }
 
-// normalizeRole memetakan alias peran (mis. CUSTOMER) ke nilai enum peran
-// di database. Mengembalikan "" bila tidak dikenal.
 func normalizeRole(role string) string {
 	switch strings.ToUpper(strings.TrimSpace(role)) {
 	case "CUSTOMER":
@@ -54,8 +48,6 @@ func normalizeRole(role string) string {
 	return ""
 }
 
-// normalizeSellerStatus memetakan alias status verifikasi (mis. PENDING)
-// ke nilai enum status_verifikasi di database. Mengembalikan "" bila tidak dikenal.
 func normalizeSellerStatus(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "PENDING":
@@ -68,14 +60,12 @@ func normalizeSellerStatus(status string) string {
 	return ""
 }
 
-// ProductWithSales adalah produk beserta jumlah total terjualnya.
 type ProductWithSales struct {
 	models.Product
 	ImageURL     string `gorm:"column:image_url"`
 	TotalTerjual int64  `gorm:"column:total_terjual"`
 }
 
-// SellerTopProduct adalah produk terlaris milik seller.
 type SellerTopProduct struct {
 	ProductID    string `gorm:"column:product_id"`
 	NamaProduk   string `gorm:"column:nama_produk"`
@@ -83,7 +73,6 @@ type SellerTopProduct struct {
 	TotalTerjual int64  `gorm:"column:total_terjual"`
 }
 
-// SellerDashboardData adalah hasil agregasi dashboard seller.
 type SellerDashboardData struct {
 	TotalProduk      int64
 	ProdukAktif      int64
@@ -107,8 +96,7 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 	}
 	var exist models.Seller
 	if err := tx.Select("seller_id", "status_verifikasi").Where("user_id = ?", UserID).First(&exist).Error; err == nil {
-		// Pengajuan sebelumnya ditolak: boleh mengajukan ulang dengan
-		// memperbarui nama & deskripsi toko.
+
 		if exist.StatusVerifikasi == "rejected" {
 			updates := map[string]interface{}{
 				"nama_toko":         req.NamaToko,
@@ -158,7 +146,6 @@ func CreateSellerService(UserID string, req requests.CreateSellerRequest) (*mode
 	return &seller, nil
 }
 
-// GetSellerProfileService mengambil profil toko milik user seller.
 func GetSellerProfileService(userID string) (*models.Seller, error) {
 	var seller models.Seller
 	if err := database.DB.Where("user_id = ?", userID).First(&seller).Error; err != nil {
@@ -170,8 +157,6 @@ func GetSellerProfileService(userID string) (*models.Seller, error) {
 	return &seller, nil
 }
 
-// UpdateSellerProfileService memperbarui profil toko milik user seller
-// (partial update: hanya field yang dikirim yang diubah).
 func UpdateSellerProfileService(userID string, req requests.UpdateSellerProfileRequest) (*models.Seller, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -239,8 +224,6 @@ func UpdateSellerProfileService(userID string, req requests.UpdateSellerProfileR
 	return &seller, nil
 }
 
-// trimOrNil mengembalikan string yang sudah di-trim, atau nil jika kosong
-// (dipakai untuk mengosongkan kolom nullable saat update).
 func trimOrNil(s string) *string {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" {
@@ -249,7 +232,6 @@ func trimOrNil(s string) *string {
 	return &trimmed
 }
 
-// findSellerByUserID mengambil data toko milik user.
 func findSellerByUserID(db *gorm.DB, userID string) (*models.Seller, error) {
 	var seller models.Seller
 	if err := db.Select("seller_id", "user_id", "seller_trust_score").
@@ -259,8 +241,6 @@ func findSellerByUserID(db *gorm.DB, userID string) (*models.Seller, error) {
 	return &seller, nil
 }
 
-// GetAdminSellersService mengambil daftar toko seller (scope admin) dengan
-// filter status verifikasi dan pagination.
 func GetAdminSellersService(page, limit int, status string) ([]models.Seller, int64, error) {
 	query := database.DB.Model(&models.Seller{})
 
@@ -284,10 +264,6 @@ func GetAdminSellersService(page, limit int, status string) ([]models.Seller, in
 	return sellers, total, nil
 }
 
-// VerifySellerService memperbarui status verifikasi pengajuan toko seller
-// (scope admin). Jika disetujui (verified), peran user otomatis menjadi
-// seller. Jika ditolak (rejected), user tetap customer dan boleh mengajukan
-// ulang.
 func VerifySellerService(sellerID, status string) (*models.Seller, error) {
 	s := normalizeSellerStatus(status)
 	if s != "verified" && s != "rejected" {
@@ -341,8 +317,6 @@ func VerifySellerService(sellerID, status string) (*models.Seller, error) {
 	return &seller, nil
 }
 
-// GetSellerProductsService mengambil daftar produk milik seller
-// beserta total terjual, dengan filter status dan pagination.
 func GetSellerProductsService(userID string, page, limit int, status string) ([]ProductWithSales, int64, error) {
 	seller, err := findSellerByUserID(database.DB, userID)
 	if err != nil {
@@ -378,8 +352,6 @@ func GetSellerProductsService(userID string, page, limit int, status string) ([]
 	return items, total, nil
 }
 
-// GetSellerOrdersService mengambil daftar order milik toko seller
-// beserta info customer, dengan filter status dan pagination.
 func GetSellerOrdersService(userID string, page, limit int, status string) ([]models.Order, int64, error) {
 	seller, err := findSellerByUserID(database.DB, userID)
 	if err != nil {
@@ -410,7 +382,6 @@ func GetSellerOrdersService(userID string, page, limit int, status string) ([]mo
 	return orders, total, nil
 }
 
-// GetSellerDashboardService menghitung statistik dashboard toko seller.
 func GetSellerDashboardService(userID string) (*SellerDashboardData, error) {
 	seller, err := findSellerByUserID(database.DB, userID)
 	if err != nil {

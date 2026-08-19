@@ -8,7 +8,6 @@ import (
 	"github.com/ehanz12/api-SneakHub/services"
 )
 
-// displayStokStatus memetakan nilai enum database ke alias Inggris.
 func displayStokStatus(status string) string {
 	switch status {
 	case "available":

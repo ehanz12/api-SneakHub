@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// AdminReportData adalah hasil agregasi laporan admin.
 type AdminReportData struct {
 	Period        string
 	TotalUsers    int64
@@ -20,8 +19,6 @@ type AdminReportData struct {
 	TotalRevenue  float64
 }
 
-// GetAdminUsersService mengambil daftar pengguna dengan filter
-// status akun, peran, dan pagination.
 func GetAdminUsersService(page, limit int, status, role string) ([]models.User, int64, error) {
 	query := database.DB.Model(&models.User{})
 
@@ -46,7 +43,6 @@ func GetAdminUsersService(page, limit int, status, role string) ([]models.User, 
 	return users, total, nil
 }
 
-// UpdateUserStatusService memperbarui status akun pengguna.
 func UpdateUserStatusService(userID, status string) (*models.User, error) {
 	s := normalizeUserStatus(status)
 	if s == "" {
@@ -78,9 +74,6 @@ func UpdateUserStatusService(userID, status string) (*models.User, error) {
 	return &user, nil
 }
 
-// UpdateUserRoleService mengubah peran user (customer <-> seller) oleh admin.
-// Saat seller diturunkan menjadi customer, toko ditandai rejected dan seluruh
-// produknya dinonaktifkan agar tidak bisa dibeli lagi.
 func UpdateUserRoleService(userID, role string) (*models.User, error) {
 	r := normalizeRole(role)
 	if r != "seller" && r != "customer" {
@@ -121,7 +114,7 @@ func UpdateUserRoleService(userID, role string) (*models.User, error) {
 	isi := ""
 	switch r {
 	case "seller":
-		// Naikkan customer menjadi seller: toko disetujui.
+
 		if err := tx.Model(&models.Seller{}).Where("seller_id = ?", seller.SellerID).
 			Update("status_verifikasi", "verified").Error; err != nil {
 			tx.Rollback()
@@ -129,7 +122,7 @@ func UpdateUserRoleService(userID, role string) (*models.User, error) {
 		}
 		isi = "Peran Anda telah diubah menjadi seller oleh admin."
 	case "customer":
-		// Turunkan seller menjadi customer: toko ditolak & produk dinonaktifkan.
+
 		if sellerFound {
 			if err := tx.Model(&models.Seller{}).Where("seller_id = ?", seller.SellerID).
 				Update("status_verifikasi", "rejected").Error; err != nil {
@@ -164,8 +157,6 @@ func UpdateUserRoleService(userID, role string) (*models.User, error) {
 	return &user, nil
 }
 
-// GetAdminProductsService mengambil daftar semua produk dengan filter
-// status publikasi dan pagination.
 func GetAdminProductsService(page, limit int, status string) ([]models.Product, int64, error) {
 	query := database.DB.Model(&models.Product{})
 
@@ -189,7 +180,6 @@ func GetAdminProductsService(page, limit int, status string) ([]models.Product, 
 	return products, total, nil
 }
 
-// UpdateProductStatusService memperbarui status publikasi produk (moderasi).
 func UpdateProductStatusService(productID, status string) (*models.Product, error) {
 	s := normalizeProductStatus(status)
 	if s == "" {
@@ -221,14 +211,10 @@ func UpdateProductStatusService(productID, status string) (*models.Product, erro
 	return &product, nil
 }
 
-// GetAdminOrdersService mengambil daftar semua order (scope admin)
-// dengan filter status dan pagination.
 func GetAdminOrdersService(page, limit int, status string) ([]models.Order, int64, error) {
 	return GetOrdersService("", "admin", page, limit, status)
 }
 
-// GetAdminReportsService menghitung laporan agregat platform dalam
-// rentang tanggal (opsional).
 func GetAdminReportsService(period, startDate, endDate string) (*AdminReportData, error) {
 	period = strings.ToUpper(strings.TrimSpace(period))
 	if period == "" {
@@ -298,7 +284,6 @@ func GetAdminReportsService(period, startDate, endDate string) (*AdminReportData
 	return report, nil
 }
 
-// parseReportDate mem-parse tanggal YYYY-MM-DD. Mengembalikan nil bila kosong.
 func parseReportDate(date string) (*time.Time, error) {
 	date = strings.TrimSpace(date)
 	if date == "" {

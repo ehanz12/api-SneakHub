@@ -22,7 +22,6 @@ const (
 	midtransSandboxURL = "https://app.sandbox.midtrans.com/snap/v1/transactions"
 )
 
-// MidtransProvider menggunakan gateway pembayaran Midtrans (Snap API).
 type MidtransProvider struct{}
 
 func (MidtransProvider) CreatePayment(orderID, metode string, amount int64, items []TripayOrderItem, customerName, customerEmail, customerPhone string) (string, string, error) {
@@ -51,8 +50,7 @@ type midtransSnapRequest struct {
 		Email     string `json:"email,omitempty"`
 		Phone     string `json:"phone,omitempty"`
 	} `json:"customer_details,omitempty"`
-	// EnabledPayments sengaja tidak dikirim (field tidak dipakai) supaya Snap
-	// menampilkan semua channel yang aktif di dashboard merchant.
+
 	Expiry struct {
 		StartTime string `json:"start_time"`
 		Unit      string `json:"unit"`
@@ -69,9 +67,6 @@ type midtransSnapResponse struct {
 	RedirectURL   string   `json:"redirect_url"`
 }
 
-// MidtransNotificationPayload mewakili body callback dari Midtrans.
-// GrossAmount sengaja berupa string agar signature dihitung dari nilai
-// persis seperti yang dikirim Midtrans.
 type MidtransNotificationPayload struct {
 	TransactionStatus string `json:"transaction_status"`
 	FraudStatus       string `json:"fraud_status"`
@@ -97,8 +92,6 @@ func ensureMidtransConfigured() error {
 	return nil
 }
 
-// createMidtransPayment membuat transaksi Snap (open payment) dan
-// mengembalikan order_id sebagai reference + redirect_url Snap.
 func createMidtransPayment(orderID, metode string, amount int64, items []TripayOrderItem, customerName, customerEmail, customerPhone string) (string, string, error) {
 	if err := ensureMidtransConfigured(); err != nil {
 		return "", "", err
@@ -116,8 +109,6 @@ func createMidtransPayment(orderID, metode string, amount int64, items []TripayO
 		})
 	}
 
-	// Midtrans memvalidasi gross_amount = total item_details, sehingga
-	// ongkos kirim ditambahkan sebagai item terpisah.
 	shipping := amount - itemSum
 	if shipping > 0 {
 		itemDetails = append(itemDetails, midtransItemDetail{
@@ -186,8 +177,6 @@ func createMidtransPayment(orderID, metode string, amount int64, items []TripayO
 	return orderID, payload.RedirectURL, nil
 }
 
-// VerifyMidtransSignature memverifikasi signature_key dari callback Midtrans.
-// Signature = SHA512(order_id + status_code + gross_amount + server_key).
 func VerifyMidtransSignature(rawBody []byte, signature string) bool {
 	if strings.TrimSpace(config.AppConfig.MidtransServerKey) == "" {
 		return false

@@ -15,8 +15,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// normalizeKondisi memetakan alias kondisi (mis. NEW) ke nilai enum
-// kondisi di database. Mengembalikan "" bila tidak dikenal.
 func normalizeKondisi(kondisi string) string {
 	switch strings.ToUpper(strings.TrimSpace(kondisi)) {
 	case "NEW", "BARU":
@@ -29,7 +27,6 @@ func normalizeKondisi(kondisi string) string {
 	return ""
 }
 
-// resolveBrandIDs mengonversi daftar nama brand menjadi brand_id.
 func resolveBrandIDs(names []string) ([]string, error) {
 	if len(names) == 0 {
 		return nil, nil
@@ -45,7 +42,6 @@ func resolveBrandIDs(names []string) ([]string, error) {
 	return ids, nil
 }
 
-// resolveCategoryIDs mengonversi daftar nama kategori menjadi category_id.
 func resolveCategoryIDs(names []string) ([]string, error) {
 	if len(names) == 0 {
 		return nil, nil
@@ -61,7 +57,6 @@ func resolveCategoryIDs(names []string) ([]string, error) {
 	return ids, nil
 }
 
-// loadUserPreferences mengambil preferensi ukuran dan brand favorit user.
 func loadUserPreferences(userID string) (sizes []string, brands []string) {
 	if userID == "" {
 		return nil, nil
@@ -76,7 +71,6 @@ func loadUserPreferences(userID string) (sizes []string, brands []string) {
 	return sizes, brands
 }
 
-// saveRecommendation menyimpan daftar rekomendasi user (upsert per user+sumber).
 func saveRecommendation(userID, sumber string, productIDs []string) {
 	if userID == "" {
 		return
@@ -108,8 +102,6 @@ func saveRecommendation(userID, sumber string, productIDs []string) {
 	tx.Commit()
 }
 
-// SmartFilterService memfilter produk sesuai kriteria user lalu memberi
-// match_score berdasarkan prioritas harga, kondisi, dan seller trust.
 func SmartFilterService(userID string, r requests.SmartFilterRequest) ([]responses.SmartFilterItemResponse, error) {
 	query := database.DB.Model(&models.Product{}).Where("status_publikasi = ?", "aktif")
 
@@ -228,7 +220,6 @@ func SmartFilterService(userID string, r requests.SmartFilterRequest) ([]respons
 	return items, nil
 }
 
-// ukuranProdukTersedia memeriksa apakah ukuran ada di daftar ukuran produk.
 func ukuranProdukTersedia(raw []byte, size string) bool {
 	if size == "" {
 		return false
@@ -254,8 +245,6 @@ func containsString(list []string, s string) bool {
 	return false
 }
 
-// PersonalizedRecommendationService merekomendasikan produk berdasarkan
-// preferensi (brand & ukuran) serta afinitas dari aktivitas user.
 func PersonalizedRecommendationService(userID string, limit int) ([]responses.RecommendationItemResponse, error) {
 	if limit <= 0 {
 		limit = 10
@@ -355,8 +344,6 @@ func PersonalizedRecommendationService(userID string, limit int) ([]responses.Re
 	return items, nil
 }
 
-// TrendingService menghitung skor tren produk berdasarkan views dan
-// wishlist dalam periode tertentu.
 func TrendingService(userID, period string, limit int) ([]responses.TrendingItemResponse, string, error) {
 	if limit <= 0 {
 		limit = 10
@@ -448,8 +435,6 @@ func TrendingService(userID, period string, limit int) ([]responses.TrendingItem
 	return items, period, nil
 }
 
-// BestSellerWeeklyService mengambil produk terlaris minggu sebelumnya
-// (Senin-Minggu) beserta ranking dan total terjual.
 func BestSellerWeeklyService(userID string, limit int) ([]responses.BestSellerItemResponse, time.Time, time.Time, error) {
 	if limit <= 0 {
 		limit = 10
@@ -496,8 +481,6 @@ func BestSellerWeeklyService(userID string, limit int) ([]responses.BestSellerIt
 	return items, prevMonday, prevSunday, nil
 }
 
-// HomePersonalizedService menyusun section homepage: rekomendasi,
-// trending, dan best seller mingguan.
 func HomePersonalizedService(userID string) ([]responses.HomeSectionResponse, error) {
 	recs, err := PersonalizedRecommendationService(userID, 10)
 	if err != nil {

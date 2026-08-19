@@ -1,9 +1,3 @@
-// @title My API
-// @version 1.0
-// @description Ini adalah dokumentasi API gue
-// @host www.reihan.biz.id
-// @BasePath /api/v1
-
 package main
 
 import (
@@ -20,10 +14,9 @@ import (
 )
 
 func main() {
-	// load env
+
 	config.LoadEnv()
 
-	// connect to database
 	database.ConnectDB()
 	services.StartShippingScheduler()
 	app := fiber.New()
@@ -37,7 +30,7 @@ func main() {
 		AllowOrigins:     corsOrigins,
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowCredentials: true, // jika pake jwt
+		AllowCredentials: true,
 	}))
 
 	if err := os.MkdirAll("uploads", 0755); err != nil {

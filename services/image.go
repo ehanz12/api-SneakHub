@@ -25,8 +25,6 @@ const (
 	maxSearchLimit = 50
 )
 
-// UploadProductImageService menyimpan gambar produk sebagai WebP,
-// membuat record product_images dan image_embeddings dalam satu transaksi.
 func UploadProductImageService(userID, productID string, data []byte, urutanTampil int, baseURL string) (*models.ProductImage, error) {
 	if len(data) == 0 {
 		return nil, errors.New("gambar kosong")
@@ -121,7 +119,6 @@ func UploadProductImageService(userID, productID string, data []byte, urutanTamp
 	return &image, nil
 }
 
-// DeleteProductImageService menghapus gambar produk beserta embedding dan file fisiknya.
 func DeleteProductImageService(userID, productID, imageID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -169,7 +166,6 @@ func DeleteProductImageService(userID, productID, imageID string) error {
 	return nil
 }
 
-// ListProductImagesService mengambil daftar gambar milik sebuah produk.
 func ListProductImagesService(productID string) ([]models.ProductImage, error) {
 	var count int64
 	if err := database.DB.Model(&models.Product{}).Where("product_id = ?", productID).Count(&count).Error; err != nil {
@@ -186,8 +182,6 @@ func ListProductImagesService(productID string) ([]models.ProductImage, error) {
 	return images, nil
 }
 
-// SearchProductByImageService mencari produk yang mirip dengan gambar query
-// menggunakan cosine similarity terhadap semua image embedding.
 func SearchProductByImageService(data []byte, limit int) ([]responses.SearchProductByImageResponse, error) {
 	if len(data) == 0 {
 		return nil, errors.New("gambar kosong")

@@ -9,7 +9,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// struct untuk config database
 type Config struct {
 	DBName      string
 	DBUser      string
@@ -36,16 +35,14 @@ type Config struct {
 	AutoCompleteDays    int
 }
 
-// variable dari struct
 var AppConfig *Config
 
 func LoadEnv() {
-	// cek env kalo ga ada kasih error
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("Error Not Found file .env !⚠️")
 	}
 
-	// instalasi untuk config
 	AppConfig = &Config{
 		Port:        os.Getenv("PORT"),
 		DBName:      os.Getenv("DB_NAME"),
@@ -74,8 +71,6 @@ func LoadEnv() {
 	}
 }
 
-// parseIntEnv membaca env bertipe integer dengan nilai default jika kosong
-// atau tidak valid.
 func parseIntEnv(key string, fallback int) int {
 	raw := strings.TrimSpace(os.Getenv(key))
 	if raw == "" {

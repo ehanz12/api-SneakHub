@@ -46,7 +46,6 @@ func GetPaymentProvider() PaymentProvider {
 	}
 }
 
-// TripayProvider menggunakan gateway pembayaran Tripay.
 type TripayProvider struct{}
 
 func (TripayProvider) CreatePayment(orderID, metode string, amount int64, items []TripayOrderItem, customerName, customerEmail, customerPhone string) (string, string, error) {
@@ -57,8 +56,6 @@ func (TripayProvider) VerifySignature(rawBody []byte, signature string) bool {
 	return VerifyTripaySignature(rawBody, signature)
 }
 
-// MockProvider mensimulasikan gateway pembayaran untuk keperluan testing
-// tanpa perlu akun Tripay. Tidak boleh aktif di production.
 type MockProvider struct{}
 
 func (MockProvider) CreatePayment(orderID, metode string, amount int64, items []TripayOrderItem, customerName, customerEmail, customerPhone string) (string, string, error) {
@@ -118,8 +115,6 @@ func ensureTripayConfigured() error {
 	return nil
 }
 
-// tripaySignature membuat signature HMAC-SHA256 untuk request create transaksi.
-// Signature = HMAC-SHA256(merchant_code + merchant_ref + amount, private_key).
 func tripaySignature(merchantRef string, amount int64) string {
 	raw := config.AppConfig.TripayMerchantCode + merchantRef + strconv.FormatInt(amount, 10)
 	mac := hmac.New(sha256.New, []byte(config.AppConfig.TripayPrivateKey))
@@ -127,8 +122,6 @@ func tripaySignature(merchantRef string, amount int64) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// createTripayPayment membuat transaksi Tripay (closed payment) dan
-// mengembalikan reference + checkout URL.
 func createTripayPayment(orderID, method string, amount int64, items []TripayOrderItem, customerName, customerEmail, customerPhone string) (string, string, error) {
 	if err := ensureTripayConfigured(); err != nil {
 		return "", "", err
@@ -185,8 +178,6 @@ func createTripayPayment(orderID, method string, amount int64, items []TripayOrd
 	return payload.Data.Reference, payload.Data.CheckoutURL, nil
 }
 
-// VerifyTripaySignature memverifikasi X-Callback-Signature dari callback Tripay.
-// Signature = HMAC-SHA256(raw JSON body, private_key).
 func VerifyTripaySignature(rawBody []byte, signature string) bool {
 	if strings.TrimSpace(config.AppConfig.TripayPrivateKey) == "" {
 		return false

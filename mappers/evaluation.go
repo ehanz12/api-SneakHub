@@ -8,7 +8,6 @@ import (
 	"github.com/ehanz12/api-SneakHub/responses"
 )
 
-// displayDinilaiOleh memetakan nilai enum database ke alias Inggris.
 func displayDinilaiOleh(v string) string {
 	return strings.ToUpper(v)
 }

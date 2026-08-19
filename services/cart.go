@@ -26,8 +26,6 @@ func getOrCreateCart(tx *gorm.DB, customerID string) (*models.Cart, error) {
 	return &cart, nil
 }
 
-// AddCartItemsService menambahkan satu atau banyak produk ke cart secara batch.
-// Produk dengan product_id yang sama akan di-merge jumlahnya.
 func AddCartItemsService(customerID string, r requests.AddCartItemsRequest) ([]models.CartItem, float64, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {

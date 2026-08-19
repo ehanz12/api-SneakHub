@@ -108,8 +108,6 @@ func createOrderForSeller(tx *gorm.DB, customerID string, address models.Address
 	return &order, nil
 }
 
-// createOrderPayment membuat transaksi pembayaran di gateway untuk sebuah
-// pesanan (item diambil dari tabel order_items) dan menyimpan data Payment.
 func createOrderPayment(tx *gorm.DB, order *models.Order, customer models.User) error {
 	var items []models.OrderItem
 	if err := tx.Preload("Product", func(db *gorm.DB) *gorm.DB {

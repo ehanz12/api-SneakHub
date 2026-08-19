@@ -11,9 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ShipOrderService memproses pengiriman pesanan oleh seller. Nomor resi
-// didapat otomatis dari booking Biteship; jika booking gagal atau request
-// berisi nomor_resi, dipakai resi manual sebagai fallback.
 func ShipOrderService(userID, orderID string, r requests.ShipOrderRequest) (*models.Order, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -122,8 +119,6 @@ func ShipOrderService(userID, orderID string, r requests.ShipOrderRequest) (*mod
 	return &order, nil
 }
 
-// ConfirmReceivedService menandai pesanan selesai oleh customer
-// (konfirmasi barang sudah diterima).
 func ConfirmReceivedService(userID, orderID string) (*models.Order, error) {
 	tx := database.DB.Begin()
 	if tx.Error != nil {

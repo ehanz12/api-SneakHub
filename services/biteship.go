@@ -14,8 +14,6 @@ import (
 	"gorm.io/datatypes"
 )
 
-// alamatPengirimanSnapshot adalah bentuk alamat pengiriman yang tersimpan
-// di kolom orders.alamat_pengiriman (JSON).
 type alamatPengirimanSnapshot struct {
 	NamaPenerima string `json:"nama_penerima"`
 	NomorTelepon string `json:"nomor_telepon"`
@@ -52,7 +50,7 @@ type biteshipCreateOrderRequest struct {
 	OriginNote              string            `json:"origin_note"`
 	OriginPostalCode        string            `json:"origin_postal_code"`
 	DestinationContactName  string            `json:"destination_contact_name"`
-	DestinationContactPhone  string            `json:"destination_contact_phone"`
+	DestinationContactPhone string            `json:"destination_contact_phone"`
 	DestinationContactEmail string            `json:"destination_contact_email"`
 	DestinationAddress      string            `json:"destination_address"`
 	DestinationPostalCode   string            `json:"destination_postal_code"`
@@ -84,7 +82,7 @@ type biteshipTrackingResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Data    struct {
-		Status string `json:"status"`
+		Status  string `json:"status"`
 		Courier struct {
 			Company    string `json:"company"`
 			TrackingID string `json:"tracking_id"`
@@ -93,8 +91,6 @@ type biteshipTrackingResponse struct {
 	} `json:"data"`
 }
 
-// biteshipRequest mengirim request HTTP ke API Biteship dengan header
-// Authorization yang sudah terisi.
 func biteshipRequest(method, path string, payload interface{}) ([]byte, error) {
 	apiKey := strings.TrimSpace(config.AppConfig.BiteshipAPIKey)
 	if apiKey == "" {
@@ -131,8 +127,6 @@ func biteshipRequest(method, path string, payload interface{}) ([]byte, error) {
 	return data, nil
 }
 
-// CreateBiteshipOrder membooking pengiriman kurir di Biteship (booking).
-// Mengembalikan nomor resi (tracking id) dan waybill id dari Biteship.
 func CreateBiteshipOrder(order *models.Order, shipment *models.Shipment, items []models.OrderItem, store models.Seller, sellerUser models.User) (resi, waybillID string, err error) {
 	alamat, err := parseAlamatSnapshot(order.AlamatPengiriman)
 	if err != nil {
@@ -253,9 +247,6 @@ func CreateBiteshipOrder(order *models.Order, shipment *models.Shipment, items [
 	return resi, waybillID, nil
 }
 
-// TrackBiteshipShipment mengambil status tracking terbaru dari Biteship
-// berdasarkan tracking id (waybill). Mengembalikan status kurir Biteship
-// dan riwayat tracking.
 func TrackBiteshipShipment(trackingID string) (string, []models.ShipmentTrackingEvent, error) {
 	trackingID = strings.TrimSpace(trackingID)
 	if trackingID == "" {
@@ -282,8 +273,6 @@ func TrackBiteshipShipment(trackingID string) (string, []models.ShipmentTracking
 	return strings.ToLower(strings.TrimSpace(result.Data.Status)), result.Data.History, nil
 }
 
-// mapBiteshipCourierStatus memetakan status kurir Biteship ke enum
-// status_pengiriman (menunggu/dikirim/dalam_perjalanan/sampai).
 func mapBiteshipCourierStatus(status string) string {
 	switch strings.ToLower(strings.TrimSpace(status)) {
 	case "delivered":
@@ -292,7 +281,7 @@ func mapBiteshipCourierStatus(status string) string {
 		return "dalam_perjalanan"
 	case "cancelled":
 		return "menunggu"
-	default: // pending, allocated, allocation_failed, on_hold, dll.
+	default:
 		return "dikirim"
 	}
 }

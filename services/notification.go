@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// createNotification membuat notifikasi baru untuk user di dalam transaksi db.
 func createNotification(db *gorm.DB, userID, jenis, isi string) error {
 	notification := models.Notification{
 		UserID:          userID,
@@ -22,8 +21,6 @@ func createNotification(db *gorm.DB, userID, jenis, isi string) error {
 	return nil
 }
 
-// normalizeNotificationType memetakan alias jenis notifikasi (mis.
-// PRICE_ALERT) ke nilai enum jenis_notifikasi di database.
 func normalizeNotificationType(jenis string) string {
 	switch strings.ToUpper(strings.TrimSpace(jenis)) {
 	case "PRICE_ALERT":
@@ -40,8 +37,6 @@ func normalizeNotificationType(jenis string) string {
 	return ""
 }
 
-// GetNotificationsService mengambil daftar notifikasi user dengan filter
-// jenis, pagination, dan jumlah notifikasi belum dibaca.
 func GetNotificationsService(userID string, page, limit int, jenis string) ([]models.Notification, int64, error) {
 	query := database.DB.Model(&models.Notification{}).Where("user_id = ?", userID)
 
@@ -70,7 +65,6 @@ func GetNotificationsService(userID string, page, limit int, jenis string) ([]mo
 	return notifications, unread, nil
 }
 
-// MarkNotificationReadService menandai notifikasi milik user sebagai dibaca.
 func MarkNotificationReadService(userID, notificationID string) (*models.Notification, error) {
 	var notification models.Notification
 	if err := database.DB.Where("notification_id = ? AND user_id = ?", notificationID, userID).

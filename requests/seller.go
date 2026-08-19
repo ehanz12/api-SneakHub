@@ -35,9 +35,6 @@ func (r *CreateSellerRequest) Validation() map[string]string {
 	return errs
 }
 
-// UpdateSellerProfileRequest adalah body update profil toko (partial update).
-// Field yang tidak dikirim tidak berubah; field dikirim kosong ("")
-// akan dihapus (NULL).
 type UpdateSellerProfileRequest struct {
 	NamaToko      *string `json:"nama_toko"`
 	DeskripsiToko *string `json:"deskripsi_toko"`
@@ -68,8 +65,6 @@ func (r *UpdateSellerProfileRequest) Validation() map[string]string {
 	return errs
 }
 
-// validateOriginFields memvalidasi kolom asal pengiriman toko (opsional).
-// Kode pos wajib 5 digit; kota & alamat minimal panjang tertentu jika diisi.
 func validateOriginFields(kodePos, kota, alamat *string, errs map[string]string) {
 	if kodePos != nil {
 		trimmed := strings.TrimSpace(*kodePos)

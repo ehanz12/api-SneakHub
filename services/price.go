@@ -12,7 +12,6 @@ import (
 	"github.com/ehanz12/api-SneakHub/responses"
 )
 
-// marketStats adalah statistik harga dari data pasar.
 type marketStats struct {
 	Min     float64 `gorm:"column:min_price"`
 	Max     float64 `gorm:"column:max_price"`
@@ -21,7 +20,6 @@ type marketStats struct {
 	HasData bool
 }
 
-// getMarketStats mengambil MIN/MAX/AVG harga pasar berdasarkan kriteria.
 func getMarketStats(brandID, model, kondisi, ukuran string) (*marketStats, error) {
 	query := database.DB.Model(&models.MarketPriceData{}).Where("brand_id = ?", brandID)
 	if model != "" {
@@ -46,8 +44,6 @@ func getMarketStats(brandID, model, kondisi, ukuran string) (*marketStats, error
 	return &s, nil
 }
 
-// productPriceFallback mengambil statistik harga dari produk aktif
-// dengan brand yang sama saat data pasar belum tersedia.
 func productPriceFallback(brandID string) (*marketStats, error) {
 	var s marketStats
 	if err := database.DB.Model(&models.Product{}).
@@ -63,7 +59,6 @@ func productPriceFallback(brandID string) (*marketStats, error) {
 	return &s, nil
 }
 
-// confidenceFor menghitung tingkat keyakinan prediksi dari jumlah sampel.
 func confidenceFor(count int64) float64 {
 	switch {
 	case count >= 30:
@@ -77,8 +72,6 @@ func confidenceFor(count int64) float64 {
 	}
 }
 
-// PredictPriceService memperkirakan harga pasar produk dan menyimpan
-// riwayat prediksi ke tabel price_predictions.
 func PredictPriceService(userID string, r requests.PricePredictionRequest) (*responses.PricePredictionResponse, error) {
 	seller, err := findSellerByUserID(database.DB, userID)
 	if err != nil {
@@ -146,8 +139,6 @@ func PredictPriceService(userID string, r requests.PricePredictionRequest) (*res
 	}, nil
 }
 
-// PriceInsightService membandingkan harga produk dengan rata-rata pasar
-// dan mendeteksi anomali harga.
 func PriceInsightService(productID string) (*responses.PriceInsightResponse, error) {
 	var product models.Product
 	if err := database.DB.Select("product_id", "brand_id", "nama_produk", "harga").

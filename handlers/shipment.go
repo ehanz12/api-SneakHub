@@ -7,8 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// ShipOrderHandler (seller) mengirim pesanan: booking kurir via Biteship
-// untuk mendapatkan resi otomatis, atau resi manual jika dikirim di body.
 func ShipOrderHandler(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	orderID := c.Params("order_id")
@@ -26,8 +24,6 @@ func ShipOrderHandler(c *fiber.Ctx) error {
 	return c.Status(200).JSON(fiber.Map{"success": true, "message": "Pesanan berhasil dikirim.", "data": mappers.ToOrderDetailResponse(*order)})
 }
 
-// ConfirmReceivedHandler (customer) menandai pesanan selesai setelah
-// barang diterima.
 func ConfirmReceivedHandler(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	orderID := c.Params("order_id")

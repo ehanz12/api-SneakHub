@@ -70,14 +70,11 @@ func CreateProductService(userID string, r requests.CreateProduct) (*models.Prod
 	return &product, nil
 }
 
-// RatingSummary adalah ringkasan rating sebuah produk.
 type RatingSummary struct {
 	AvgRating   float64
 	TotalReview int64
 }
 
-// FirstImageURL mengembalikan URL gambar pertama (urutan tampil terkecil)
-// dari sebuah produk, atau string kosong bila tidak ada gambar.
 func FirstImageURL(images []models.ProductImage) string {
 	if len(images) == 0 {
 		return ""
@@ -85,8 +82,6 @@ func FirstImageURL(images []models.ProductImage) string {
 	return images[0].URLObjectStorage
 }
 
-// GetRatingSummaries menghitung rata-rata rating dan jumlah review untuk
-// daftar product_id dalam satu query GROUP BY.
 func GetRatingSummaries(productIDs []string) map[string]RatingSummary {
 	summaries := make(map[string]RatingSummary)
 	if len(productIDs) == 0 {
@@ -285,8 +280,6 @@ func UpdateProductService(userID string, productID string, r requests.UpdateProd
 	return &product, nil
 }
 
-// triggerProductAlerts membangkitkan notifikasi price_alert/restock_alert
-// kepada user yang memasang alert pada produk, lalu menonaktifkan alert-nya.
 func triggerProductAlerts(tx *gorm.DB, product models.Product, priceChanged, restocked bool) error {
 	if priceChanged {
 		var wishlists []models.Wishlist
@@ -327,8 +320,6 @@ func triggerProductAlerts(tx *gorm.DB, product models.Product, priceChanged, res
 	return nil
 }
 
-// DeleteProductService menghapus produk beserta data terkait.
-// Diblokir jika produk masih memiliki pesanan aktif.
 func DeleteProductService(userID, productID string) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {

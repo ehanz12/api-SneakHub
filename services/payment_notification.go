@@ -9,13 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// ErrPaymentNotFound menandakan order_id pada callback tidak ada di database.
-// Callback dengan order tidak dikenal tidak akan pernah berhasil, sehingga
-// dipakai untuk memutuskan apakah perlu membalas 200 (diterima, diabaikan).
 var ErrPaymentNotFound = errors.New("data pembayaran tidak ditemukan")
 
-// HandlePaymentNotificationService memperbarui status pembayaran & pesanan
-// berdasarkan callback dari Tripay.
 func HandlePaymentNotificationService(orderID, transactionStatus, transactionID string, grossAmount float64) error {
 	tx := database.DB.Begin()
 	if tx.Error != nil {
@@ -49,8 +44,7 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 	case "PAID":
 		updates["status_pembayaran"] = "paid"
 		updates["paid_at"] = time.Now()
-		// Status order hanya naik ke diproses jika masih pending; callback
-		// dobel/terlambat tidak boleh menurunkan order yang sudah dikirim.
+
 		if order.StatusOrder == "pending" {
 			if err := tx.Model(&models.Order{}).Where("order_id = ?", orderID).Update("status_order", "diproses").Error; err != nil {
 				tx.Rollback()
@@ -58,8 +52,7 @@ func HandlePaymentNotificationService(orderID, transactionStatus, transactionID 
 			}
 		}
 	case "EXPIRED", "FAILED":
-		// Pembatalan + restore stok hanya untuk order yang belum dibayar &
-		// masih pending; order yang sudah diproses/dikirim tidak terpengaruh.
+
 		if payment.StatusPembayaran != "expired" && payment.StatusPembayaran != "failed" && order.StatusOrder == "pending" {
 			if err := restoreOrderStock(tx, orderID); err != nil {
 				tx.Rollback()

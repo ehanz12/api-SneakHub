@@ -8,8 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ShipmentTrackingEvent adalah satu catatan riwayat tracking kurir
-// dari Biteship, disimpan sebagai JSON di kolom tracking_history.
 type ShipmentTrackingEvent struct {
 	Note      string `json:"note"`
 	Status    string `json:"status"`

@@ -7,7 +7,6 @@ import (
 	"github.com/ehanz12/api-SneakHub/responses"
 )
 
-// displayNotificationType memetakan nilai enum database ke alias Inggris.
 func displayNotificationType(jenis string) string {
 	switch jenis {
 	case "price_alert":
