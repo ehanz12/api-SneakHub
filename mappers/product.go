@@ -68,13 +68,6 @@ func unmarshalUkuran(data []byte) []string {
 	return sizes
 }
 
-func firstImageURL(images []models.ProductImage) string {
-	if len(images) == 0 {
-		return ""
-	}
-	return images[0].URLObjectStorage
-}
-
 func ToProductListItemResponse(p models.Product, rs services.RatingSummary) responses.ProductListItemResponse {
 	item := responses.ProductListItemResponse{
 		ProductID:      p.ProductID,
@@ -86,7 +79,7 @@ func ToProductListItemResponse(p models.Product, rs services.RatingSummary) resp
 		ConditionScore: p.ConditionScore,
 		AvgRating:      rs.AvgRating,
 		TotalReview:    rs.TotalReview,
-		ImageURL:       firstImageURL(p.Images),
+		ImageURL:       services.FirstImageURL(p.Images),
 	}
 	if p.Seller.SellerID != "" {
 		item.Seller = responses.SellerInfoResponse{

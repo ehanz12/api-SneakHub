@@ -26,6 +26,9 @@ func GetWishlistService(customerID string) ([]models.Wishlist, error) {
 		Preload("Product", func(db *gorm.DB) *gorm.DB {
 			return db.Select("product_id", "nama_produk", "harga", "stok", "status_publikasi")
 		}).
+		Preload("Product.Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
+		}).
 		Where("customer_id = ?", customerID).
 		Order("created_at desc").
 		Find(&wishlists).Error; err != nil {

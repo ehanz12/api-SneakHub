@@ -14,6 +14,7 @@ type WishlistItemResponse struct {
 	ProductID          string                       `json:"product_id"`
 	NamaProduk         string                       `json:"nama_produk"`
 	Harga              float64                      `json:"harga"`
+	ImageURL           string                       `json:"image_url"`
 	StatusStokTerakhir string                       `json:"status_stok_terakhir"`
 	PriceAlert         WishlistPriceAlertResponse   `json:"price_alert"`
 	RestockAlert       WishlistRestockAlertResponse `json:"restock_alert"`

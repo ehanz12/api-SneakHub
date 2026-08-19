@@ -91,6 +91,9 @@ func GetOrderService(userID, role, orderID string) (*models.Order, error) {
 		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
 			return db.Select("product_id", "nama_produk")
 		}).
+		Preload("Items.Product.Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
+		}).
 		Preload("Payment").
 		Preload("Shipment").
 		Where("order_id = ?", orderID)

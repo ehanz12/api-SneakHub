@@ -12,6 +12,7 @@ import (
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/requests"
 	"github.com/ehanz12/api-SneakHub/responses"
+	"gorm.io/gorm"
 )
 
 // normalizeKondisi memetakan alias kondisi (mis. NEW) ke nilai enum
@@ -149,7 +150,9 @@ func SmartFilterService(userID string, r requests.SmartFilterRequest) ([]respons
 		}
 	}
 
-	query = query.Preload("Brand").Preload("Seller")
+	query = query.Preload("Brand").Preload("Seller").Preload("Images", func(db *gorm.DB) *gorm.DB {
+		return db.Order("urutan_tampil asc")
+	})
 	var products []models.Product
 	if err := query.Find(&products).Error; err != nil {
 		return nil, errors.New("gagal memuat produk")
@@ -212,6 +215,7 @@ func SmartFilterService(userID string, r requests.SmartFilterRequest) ([]respons
 			ProductID:  p.ProductID,
 			NamaProduk: p.NamaProduk,
 			Harga:      p.Harga,
+			ImageURL:   FirstImageURL(p.Images),
 			MatchScore: int(math.Round(match)),
 			Alasan:     alasan,
 		})
@@ -279,6 +283,9 @@ func PersonalizedRecommendationService(userID string, limit int) ([]responses.Re
 	query := database.DB.Model(&models.Product{}).
 		Where("status_publikasi = ?", "aktif").
 		Preload("Brand").
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
+		}).
 		Order("created_at desc").
 		Limit(50)
 
@@ -328,6 +335,7 @@ func PersonalizedRecommendationService(userID string, limit int) ([]responses.Re
 			ProductID:  p.ProductID,
 			NamaProduk: p.NamaProduk,
 			Harga:      p.Harga,
+			ImageURL:   FirstImageURL(p.Images),
 			Score:      math.Round(score*100) / 100,
 			Reason:     reason,
 		})
@@ -411,7 +419,9 @@ func TrendingService(userID, period string, limit int) ([]responses.TrendingItem
 		wishCount := wishMap[pid]
 		trend := int(math.Min(100, math.Round(float64(viewsCount)*0.7+float64(wishCount)*1.5)))
 		var product models.Product
-		if err := database.DB.Select("product_id", "nama_produk").
+		if err := database.DB.Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
+		}).Select("product_id", "nama_produk").
 			Where("product_id = ? AND status_publikasi = ?", pid, "aktif").
 			First(&product).Error; err != nil {
 			continue
@@ -419,6 +429,7 @@ func TrendingService(userID, period string, limit int) ([]responses.TrendingItem
 		items = append(items, responses.TrendingItemResponse{
 			ProductID:     product.ProductID,
 			NamaProduk:    product.NamaProduk,
+			ImageURL:      FirstImageURL(product.Images),
 			TrendScore:    trend,
 			Views:         viewsCount,
 			WishlistCount: wishCount,
@@ -453,10 +464,11 @@ func BestSellerWeeklyService(userID string, limit int) ([]responses.BestSellerIt
 	var rows []struct {
 		ProductID    string `gorm:"column:product_id"`
 		NamaProduk   string `gorm:"column:nama_produk"`
+		ImageURL     string `gorm:"column:image_url"`
 		TotalTerjual int64  `gorm:"column:total_terjual"`
 	}
 	if err := database.DB.Model(&models.OrderItem{}).
-		Select("order_items.product_id, products.nama_produk, SUM(order_items.jumlah) AS total_terjual").
+		Select("order_items.product_id, products.nama_produk, (SELECT url_object_storage FROM product_images pi WHERE pi.product_id = order_items.product_id ORDER BY pi.urutan_tampil ASC LIMIT 1) AS image_url, SUM(order_items.jumlah) AS total_terjual").
 		Joins("JOIN products ON products.product_id = order_items.product_id").
 		Joins("JOIN orders ON orders.order_id = order_items.order_id").
 		Where("orders.created_at >= ? AND orders.created_at <= ? AND orders.status_order <> ?",
@@ -475,6 +487,7 @@ func BestSellerWeeklyService(userID string, limit int) ([]responses.BestSellerIt
 			Rank:         i + 1,
 			ProductID:    row.ProductID,
 			NamaProduk:   row.NamaProduk,
+			ImageURL:     row.ImageURL,
 			TotalTerjual: row.TotalTerjual,
 		})
 		productIDs = append(productIDs, row.ProductID)

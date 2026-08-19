@@ -50,6 +50,7 @@ type AdminProductListItemResponse struct {
 	NamaProduk      string  `json:"nama_produk"`
 	SellerID        string  `json:"seller_id"`
 	Harga           float64 `json:"harga"`
+	ImageURL        string  `json:"image_url"`
 	StatusPublikasi string  `json:"status_publikasi"`
 }
 

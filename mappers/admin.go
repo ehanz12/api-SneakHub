@@ -70,6 +70,7 @@ func ToAdminProductListResponse(products []models.Product) []responses.AdminProd
 			NamaProduk:      p.NamaProduk,
 			SellerID:        p.SellerID,
 			Harga:           p.Harga,
+			ImageURL:        services.FirstImageURL(p.Images),
 			StatusPublikasi: displayProductStatus(p.StatusPublikasi),
 		})
 	}

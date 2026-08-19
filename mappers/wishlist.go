@@ -5,6 +5,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/responses"
+	"github.com/ehanz12/api-SneakHub/services"
 )
 
 // displayStokStatus memetakan nilai enum database ke alias Inggris.
@@ -26,6 +27,7 @@ func ToWishlistListResponse(wishlists []models.Wishlist) []responses.WishlistIte
 			ProductID:          w.ProductID,
 			NamaProduk:         w.Product.NamaProduk,
 			Harga:              w.Product.Harga,
+			ImageURL:           services.FirstImageURL(w.Product.Images),
 			StatusStokTerakhir: displayStokStatus(w.StatusStok),
 			PriceAlert: responses.WishlistPriceAlertResponse{
 				Enabled:     w.PriceAlertEnabled,

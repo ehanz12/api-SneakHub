@@ -4,6 +4,7 @@ type SmartFilterItemResponse struct {
 	ProductID  string   `json:"product_id"`
 	NamaProduk string   `json:"nama_produk"`
 	Harga      float64  `json:"harga"`
+	ImageURL   string   `json:"image_url"`
 	MatchScore int      `json:"match_score"`
 	Alasan     []string `json:"alasan"`
 }
@@ -33,6 +34,7 @@ type RecommendationItemResponse struct {
 	ProductID  string  `json:"product_id"`
 	NamaProduk string  `json:"nama_produk"`
 	Harga      float64 `json:"harga"`
+	ImageURL   string  `json:"image_url"`
 	Score      float64 `json:"score"`
 	Reason     string  `json:"reason"`
 }
@@ -44,6 +46,7 @@ type RecommendationDataResponse struct {
 type TrendingItemResponse struct {
 	ProductID     string `json:"product_id"`
 	NamaProduk    string `json:"nama_produk"`
+	ImageURL      string `json:"image_url"`
 	TrendScore    int    `json:"trend_score"`
 	Views         int64  `json:"views"`
 	WishlistCount int64  `json:"wishlist_count"`
@@ -58,6 +61,7 @@ type BestSellerItemResponse struct {
 	Rank         int    `json:"rank"`
 	ProductID    string `json:"product_id"`
 	NamaProduk   string `json:"nama_produk"`
+	ImageURL     string `json:"image_url"`
 	TotalTerjual int64  `json:"total_terjual"`
 }
 

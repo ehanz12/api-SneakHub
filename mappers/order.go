@@ -5,6 +5,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/models"
 	"github.com/ehanz12/api-SneakHub/responses"
+	"github.com/ehanz12/api-SneakHub/services"
 )
 
 func ToOrderAlamatResponse(raw []byte) responses.OrderAlamatResponse {
@@ -82,6 +83,7 @@ func ToOrderDetailResponse(o models.Order) responses.OrderDetailResponse {
 			OrderItemID:        item.OrderItemID,
 			ProductID:          item.ProductID,
 			NamaProduk:         item.Product.NamaProduk,
+			ImageURL:           services.FirstImageURL(item.Product.Images),
 			Jumlah:             item.Jumlah,
 			HargaSaatTransaksi: item.HargaSaatTransaksi,
 		})

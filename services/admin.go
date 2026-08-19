@@ -7,6 +7,7 @@ import (
 
 	"github.com/ehanz12/api-SneakHub/database"
 	"github.com/ehanz12/api-SneakHub/models"
+	"gorm.io/gorm"
 )
 
 // AdminReportData adalah hasil agregasi laporan admin.
@@ -178,7 +179,9 @@ func GetAdminProductsService(page, limit int, status string) ([]models.Product, 
 	}
 
 	var products []models.Product
-	if err := query.Order("created_at desc").
+	if err := query.Preload("Images", func(db *gorm.DB) *gorm.DB {
+		return db.Order("urutan_tampil asc")
+	}).Order("created_at desc").
 		Offset((page - 1) * limit).Limit(limit).Find(&products).Error; err != nil {
 		return nil, 0, errors.New("gagal memuat data produk")
 	}

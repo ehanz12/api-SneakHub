@@ -34,6 +34,9 @@ func ShipOrderService(userID, orderID string, r requests.ShipOrderRequest) (*mod
 		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
 			return db.Select("product_id", "nama_produk", "berat")
 		}).
+		Preload("Items.Product.Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
+		}).
 		Where("order_id = ? AND seller_id = ?", orderID, store.SellerID).
 		First(&order).Error; err != nil {
 		tx.Rollback()
@@ -132,6 +135,9 @@ func ConfirmReceivedService(userID, orderID string) (*models.Order, error) {
 	if err := tx.Preload("Shipment").
 		Preload("Items.Product", func(db *gorm.DB) *gorm.DB {
 			return db.Select("product_id", "nama_produk")
+		}).
+		Preload("Items.Product.Images", func(db *gorm.DB) *gorm.DB {
+			return db.Order("urutan_tampil asc")
 		}).
 		Where("order_id = ? AND customer_id = ?", orderID, userID).
 		First(&order).Error; err != nil {

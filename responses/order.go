@@ -24,6 +24,7 @@ type OrderItemResponse struct {
 	OrderItemID        string  `json:"order_item_id"`
 	ProductID          string  `json:"product_id"`
 	NamaProduk         string  `json:"nama_produk"`
+	ImageURL           string  `json:"image_url"`
 	Jumlah             int     `json:"jumlah"`
 	HargaSaatTransaksi float64 `json:"harga_saat_transaksi"`
 }
@@ -46,15 +47,15 @@ type ShipmentTrackingEventResponse struct {
 }
 
 type OrderShipmentResponse struct {
-	ShipmentID       string                         `json:"shipment_id"`
-	Kurir            string                         `json:"kurir"`
-	Service          *string                        `json:"service,omitempty"`
-	NomorResi        *string                        `json:"nomor_resi,omitempty"`
-	TrackingID       *string                        `json:"tracking_id,omitempty"`
+	ShipmentID       string                          `json:"shipment_id"`
+	Kurir            string                          `json:"kurir"`
+	Service          *string                         `json:"service,omitempty"`
+	NomorResi        *string                         `json:"nomor_resi,omitempty"`
+	TrackingID       *string                         `json:"tracking_id,omitempty"`
 	TrackingHistory  []ShipmentTrackingEventResponse `json:"tracking_history,omitempty"`
-	StatusPengiriman string                         `json:"status_pengiriman"`
-	ShippedAt        *time.Time                     `json:"shipped_at,omitempty"`
-	DeliveredAt      *time.Time                     `json:"delivered_at,omitempty"`
+	StatusPengiriman string                          `json:"status_pengiriman"`
+	ShippedAt        *time.Time                      `json:"shipped_at,omitempty"`
+	DeliveredAt      *time.Time                      `json:"delivered_at,omitempty"`
 }
 
 type OrderDetailResponse struct {

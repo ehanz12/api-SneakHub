@@ -76,6 +76,15 @@ type RatingSummary struct {
 	TotalReview int64
 }
 
+// FirstImageURL mengembalikan URL gambar pertama (urutan tampil terkecil)
+// dari sebuah produk, atau string kosong bila tidak ada gambar.
+func FirstImageURL(images []models.ProductImage) string {
+	if len(images) == 0 {
+		return ""
+	}
+	return images[0].URLObjectStorage
+}
+
 // GetRatingSummaries menghitung rata-rata rating dan jumlah review untuk
 // daftar product_id dalam satu query GROUP BY.
 func GetRatingSummaries(productIDs []string) map[string]RatingSummary {

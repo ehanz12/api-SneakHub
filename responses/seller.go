@@ -17,6 +17,7 @@ type SellerProductListItemResponse struct {
 	ProductID       string  `json:"product_id"`
 	NamaProduk      string  `json:"nama_produk"`
 	Harga           float64 `json:"harga"`
+	ImageURL        string  `json:"image_url"`
 	Stok            int     `json:"stok"`
 	StatusPublikasi string  `json:"status_publikasi"`
 	TotalTerjual    int64   `json:"total_terjual"`
@@ -48,6 +49,7 @@ type SellerOrderListDataResponse struct {
 type SellerTopProductResponse struct {
 	ProductID    string `json:"product_id"`
 	NamaProduk   string `json:"nama_produk"`
+	ImageURL     string `json:"image_url"`
 	TotalTerjual int64  `json:"total_terjual"`
 }
 

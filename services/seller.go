@@ -71,13 +71,15 @@ func normalizeSellerStatus(status string) string {
 // ProductWithSales adalah produk beserta jumlah total terjualnya.
 type ProductWithSales struct {
 	models.Product
-	TotalTerjual int64 `gorm:"column:total_terjual"`
+	ImageURL     string `gorm:"column:image_url"`
+	TotalTerjual int64  `gorm:"column:total_terjual"`
 }
 
 // SellerTopProduct adalah produk terlaris milik seller.
 type SellerTopProduct struct {
 	ProductID    string `gorm:"column:product_id"`
 	NamaProduk   string `gorm:"column:nama_produk"`
+	ImageURL     string `gorm:"column:image_url"`
 	TotalTerjual int64  `gorm:"column:total_terjual"`
 }
 
@@ -354,7 +356,7 @@ func GetSellerProductsService(userID string, page, limit int, status string) ([]
 		Group("product_id")
 
 	query := database.DB.Model(&models.Product{}).
-		Select("products.*, COALESCE(s.total_terjual, 0) AS total_terjual").
+		Select("products.*, (SELECT url_object_storage FROM product_images pi WHERE pi.product_id = products.product_id ORDER BY pi.urutan_tampil ASC LIMIT 1) AS image_url, COALESCE(s.total_terjual, 0) AS total_terjual").
 		Joins("LEFT JOIN (?) s ON s.product_id = products.product_id", salesSub).
 		Where("products.seller_id = ?", seller.SellerID)
 
@@ -454,7 +456,7 @@ func GetSellerDashboardService(userID string) (*SellerDashboardData, error) {
 
 	var topProducts []SellerTopProduct
 	if err := database.DB.Model(&models.OrderItem{}).
-		Select("products.product_id, products.nama_produk, SUM(order_items.jumlah) AS total_terjual").
+		Select("products.product_id, products.nama_produk, (SELECT url_object_storage FROM product_images pi WHERE pi.product_id = products.product_id ORDER BY pi.urutan_tampil ASC LIMIT 1) AS image_url, SUM(order_items.jumlah) AS total_terjual").
 		Joins("JOIN products ON products.product_id = order_items.product_id").
 		Joins("JOIN orders ON orders.order_id = order_items.order_id").
 		Where("products.seller_id = ? AND orders.status_order <> ?", seller.SellerID, "dibatalkan").

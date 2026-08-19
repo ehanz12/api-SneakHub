@@ -90,6 +90,7 @@ func ToSellerProductListResponse(products []services.ProductWithSales) []respons
 			ProductID:       p.ProductID,
 			NamaProduk:      p.NamaProduk,
 			Harga:           p.Harga,
+			ImageURL:        p.ImageURL,
 			Stok:            p.Stok,
 			StatusPublikasi: displayProductStatus(p.StatusPublikasi),
 			TotalTerjual:    p.TotalTerjual,
@@ -124,6 +125,7 @@ func ToSellerDashboardResponse(d *services.SellerDashboardData) responses.Seller
 		top = append(top, responses.SellerTopProductResponse{
 			ProductID:    p.ProductID,
 			NamaProduk:   p.NamaProduk,
+			ImageURL:     p.ImageURL,
 			TotalTerjual: p.TotalTerjual,
 		})
 	}
